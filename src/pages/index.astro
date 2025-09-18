@@ -1,0 +1,100 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import { SITE_BASE, SocialLinks } from '../consts'
+import { Icon } from 'astro-icon/components'
+import BlogCard from '../components/BlogCard.astro'
+import { getCollection } from 'astro:content'
+
+const posts = (await getCollection('blog'))
+	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+	.slice(0, 4)
+---
+
+<BaseLayout>
+	<main
+		class="app-container flex flex-col gap-12 justify-center py-36 md:py-48 pt-44 md:pt-56 relative"
+	>
+		<p class="text-2xl max-w-2xl font-light leading-normal">
+			Héctor has spent his career building developer tools that change how
+			entire ecosystems ship software. A computer engineer with 20 years of
+			experience across infrastructure, mobile, and AI, he spent a decade at
+			Meta working on open source development for React Native. Before that, he
+			was one of the earliest team members at Parse (acquired by Meta/Facebook),
+			where he shaped developer advocacy and built brand awareness for one of
+			the fastest-growing developer tools of all time.
+		</p>
+
+		<p class="text-2xl max-w-2xl font-light leading-normal">
+			Today, he’s founder and CEO of Wallfacer, the cross-platform control plane
+			for AI-driven software development. Wallfacer gives small teams the
+			ability to direct and audit hundreds of AI coding agents with the same
+			rigor Fortune 500 companies apply to human engineers — turning five-person
+			startups into engineering orgs that operate like 500.
+		</p>
+		<p class="text-2xl max-w-2xl font-light leading-normal">
+			Before Wallfacer, Héctor was a founding engineer at Groupthink, building
+			real-time AI collaboration tools in React and React Native. Originally
+			from Puerto Rico, he’s now based in Scottsdale, where he still tinkers
+			with systems for fun — from a backyard observatory for deep-sky
+			astrophotography to a rooftop plane tracker.
+		</p>
+		<div class="flex flex-wrap gap-8">
+			{
+				SocialLinks.map((link) => (
+					<a
+						class="text-xl text-primary dark:text-primary-dark underline hover:underline underline-offset-4"
+						href={link.url}
+						target="_blank"
+					>
+						{link.name}
+					</a>
+				))
+			}
+		</div>
+	</main>
+
+	<!-- Recent Posts Section -->
+	<section class="app-container">
+		<h2 class="section-title">Writing</h2>
+		<div class="posts-grid-container">
+			{posts.map((post) => <BlogCard post={post} />)}
+		</div>
+		<a class="btn-secondary" href="/blog"
+			>Read All
+			<Icon size={20} name="mdi:arrow-right" />
+		</a>
+	</section>
+
+	<!-- Recent Posts Section -->
+	<section class="app-container py-42 grid lg:grid-cols-2 gap-28 lg:gap-10">
+		<div class="space-y-6">
+			<h2 class="section-title">About Me</h2>
+			<p class="text-lg max-w-xl pb-4">
+				I'm a software engineer and entrepreneur originally from Puerto Rico,
+				now building Wallfacer Technologies. Previously, I was a founding
+				engineer at Groupthink working on AI collaboration tools, led React
+				Native open-source strategy at Meta, and was a founding engineer at
+				Parse before its acquisition by Meta.
+			</p>
+			<a class="btn-secondary" href={`${SITE_BASE}/about`}
+				>Go to About
+				<Icon size={20} name="mdi:arrow-right" />
+			</a>
+		</div>
+		<div class="space-y-6">
+			<h2 class="section-title">Get in touch</h2>
+			<p class="text-lg max-w-xl">
+				Feel free to reach out via email or connect with me on social media.
+			</p>
+			<div class="flex flex-wrap mt-auto space-x-4">
+				<a
+					class="btn-primary"
+					href="mailto:hector@hectorramos.com"
+					target="_blank"
+					>Get in touch
+					<Icon height={20} name="mdi:email" />
+				</a>
+			</div>
+		</div>
+	</section>
+</BaseLayout>
