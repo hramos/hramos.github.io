@@ -30,7 +30,7 @@ export const SocialLinks = [
 
 export const WebsiteLinks = [
 	{
-		name: 'Blog',
+		name: 'Writing',
 		url: 'blog',
 	},
 	{
