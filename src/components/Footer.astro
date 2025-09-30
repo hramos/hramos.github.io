@@ -22,7 +22,7 @@ const today = new Date()
 					WebsiteLinks.filter((link) => link.name !== 'Home').map((link) => (
 						<a
 							class="text-lg"
-							href={link.url}
+							href={`/${link.url}`}
 							target="_blank"
 							rel="noopener noreferrer"
 						>

@@ -1,0 +1,5 @@
+# Journal Configuration
+# Options: 'tracked' (in git), 'ignored' (local only), 'hybrid' (some tracked, some not)
+mode: tracked
+include_personal_notes: true
+auto_summary: weekly
