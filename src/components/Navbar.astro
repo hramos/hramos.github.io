@@ -18,8 +18,10 @@ import LogoSVG from '../assets/logo.svg'
 							class="text-lg"
 							href={`${SITE_BASE}/${link.url}`}
 							target={link.url.charAt(0) === 'h' ? '_blank' : '_self'}
+							aria-label={link.name}
+							title={link.name}
 						>
-							{link.name}
+							<Icon name={link.icon} class="text-2xl" aria-hidden />
 						</NavbarLink>
 					))
 				}
