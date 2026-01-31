@@ -32,13 +32,16 @@ export const WebsiteLinks = [
 	{
 		name: 'Writing',
 		url: 'blog',
+		icon: 'mdi:pencil',
 	},
 	{
 		name: 'Astrophotography',
 		url: 'astro',
+		icon: 'mdi:telescope',
 	},
 	{
 		name: 'About',
 		url: 'about',
+		icon: 'mdi:account',
 	},
 ]
