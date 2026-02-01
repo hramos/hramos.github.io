@@ -38,6 +38,10 @@ export const WebsiteLinks = [
 		url: 'astro',
 	},
 	{
+		name: 'Gear',
+		url: 'gear',
+	},
+	{
 		name: 'About',
 		url: 'about',
 	},
