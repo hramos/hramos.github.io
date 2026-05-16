@@ -7,9 +7,10 @@ import { SITE_TITLE, SITE_DESCRIPTION } from '../consts'
 interface Props {
 	title?: string
 	description?: string
+	hideFooter?: boolean
 }
 
-const { title, description } = Astro.props
+const { title, description, hideFooter = false } = Astro.props
 
 import '@fontsource-variable/inter'
 import '@fontsource-variable/jetbrains-mono'
@@ -28,6 +29,6 @@ import '@fontsource-variable/jetbrains-mono'
 	>
 		<Navbar title={SITE_TITLE} />
 		<slot />
-		<Footer />
+		{!hideFooter && <Footer />}
 	</body>
 </html>

@@ -1,0 +1,111 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'
+
+const youtubeId = '71FvzzR2uwE'
+const youtubeUrl = `https://youtu.be/${youtubeId}`
+const embedUrl = `https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0`
+---
+
+<BaseLayout
+	title="Flamingos 2026 Championship Game"
+	description="Watch the game footage."
+	hideFooter
+>
+	<main class="app-container pt-36">
+		<h1 class="text-6xl pb-2 font-bold">
+			Flamingos 2026 Championship Game
+		</h1>
+		<p class="text-lg text-neutral-600 dark:text-neutral-400">
+			Press play to watch, or open the video on YouTube.
+		</p>
+	</main>
+
+	<section class="app-container py-12 mb-8">
+		<div
+			class="relative w-full rounded-xl overflow-hidden bg-black shadow-lg"
+			style="aspect-ratio: 16 / 9;"
+		>
+			<iframe
+				class="absolute inset-0 w-full h-full"
+				src={embedUrl}
+				title="Flamingos 2026 Championship Game"
+				frameborder="0"
+				allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+				referrerpolicy="strict-origin-when-cross-origin"
+				allowfullscreen
+			></iframe>
+		</div>
+
+		<div class="mt-6 flex flex-wrap items-center gap-4">
+			<a
+				href={youtubeUrl}
+				target="_blank"
+				rel="noopener noreferrer"
+				class="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-neutral-900 text-white hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200 transition-colors font-medium"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="20"
+					height="20"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+					></path>
+					<polyline points="15 3 21 3 21 9"></polyline>
+					<line x1="10" y1="14" x2="21" y2="3"></line>
+				</svg>
+				Open on YouTube
+			</a>
+		</div>
+	</section>
+
+	<section class="app-container pb-12">
+		<div
+			class="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/40 p-8 md:p-10"
+		>
+			<div
+				class="flex flex-col md:flex-row md:items-center md:justify-between gap-6"
+			>
+				<div>
+					<a
+						href="https://wallfacer.ai"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="inline-block text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 hover:opacity-80 transition-opacity"
+					>
+						Wallfacer
+					</a>
+					<p
+						class="mt-2 text-neutral-600 dark:text-neutral-400 text-base md:text-lg"
+					>
+						Watch the agent build. Ship from anywhere.
+					</p>
+					<p
+						class="mt-3 text-neutral-600 dark:text-neutral-400 text-sm md:text-base max-w-2xl"
+					>
+						Wallfacer runs Claude and Codex inside a real cloud dev environment
+						with your repo, services, Docker, Xcode, and the iOS
+						Simulator. Chat, diffs, and live preview all live in one
+						task you can open from any device.
+					</p>
+				</div>
+				<div class="flex flex-wrap items-center gap-3">
+					<a
+						href="https://wallfacer.ai"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="inline-flex items-center justify-center whitespace-nowrap px-8 py-3 rounded-lg bg-neutral-900 text-white hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200 transition-colors font-medium text-sm shrink-0"
+					>
+						Learn more
+					</a>
+				</div>
+			</div>
+		</div>
+	</section>
+</BaseLayout>
