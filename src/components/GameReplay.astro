@@ -349,12 +349,23 @@ const flamingosPitching = computePitchers('top') // FLM pitches when SRP bats
 		role="tablist"
 		class="px-4 sm:px-6 flex gap-2 border-b border-neutral-200 dark:border-neutral-800"
 	>
+		{embedUrl && (
+			<button
+				type="button"
+				role="tab"
+				data-tab="video"
+				aria-selected="true"
+				class="tab-btn px-3 py-3 text-sm font-semibold border-b-2 border-pink-500 text-pink-600 dark:text-pink-400"
+			>
+				Video
+			</button>
+		)}
 		<button
 			type="button"
 			role="tab"
 			data-tab="replay"
-			aria-selected="true"
-			class="tab-btn px-3 py-3 text-sm font-semibold border-b-2 border-pink-500 text-pink-600 dark:text-pink-400"
+			aria-selected="false"
+			class="tab-btn px-3 py-3 text-sm font-semibold border-b-2 border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
 		>
 			Replay
 		</button>
