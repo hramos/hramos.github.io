@@ -394,98 +394,203 @@ const flamingosPitching = computePitchers('top') // FLM pitches when SRP bats
 		</div>
 
 		<div class="px-4 sm:px-6 pb-4 flex flex-col items-center">
-			<div class="relative w-full max-w-[300px]">
+			<div class="relative w-full max-w-[340px]">
 				<svg
-					viewBox="0 0 200 200"
+					viewBox="0 0 300 260"
 					xmlns="http://www.w3.org/2000/svg"
 					class="w-full block"
 					aria-label="Baseball diamond showing current base runners"
 				>
-					<rect
-						width="200"
-						height="200"
-						class="fill-green-200 dark:fill-emerald-950"></rect>
-					<line
-						x1="100"
-						y1="170"
-						x2="195"
-						y2="75"
-						stroke-width="0.8"
-						class="stroke-white/70 dark:stroke-white/30"></line>
-					<line
-						x1="100"
-						y1="170"
-						x2="5"
-						y2="75"
-						stroke-width="0.8"
-						class="stroke-white/70 dark:stroke-white/30"></line>
+					<defs>
+						<!-- Outfield grass gradient -->
+						<radialGradient id="outfield-grass" cx="50%" cy="100%" r="100%">
+							<stop offset="0%" class="[stop-color:#4ade80] dark:[stop-color:#14532d]" />
+							<stop offset="100%" class="[stop-color:#22c55e] dark:[stop-color:#052e16]" />
+						</radialGradient>
+						<!-- Infield dirt gradient -->
+						<radialGradient id="infield-dirt" cx="50%" cy="50%" r="70%">
+							<stop offset="0%" class="[stop-color:#d4a574] dark:[stop-color:#78350f]" />
+							<stop offset="100%" class="[stop-color:#c2956a] dark:[stop-color:#713f12]" />
+						</radialGradient>
+						<!-- Mound gradient -->
+						<radialGradient id="mound" cx="50%" cy="40%" r="60%">
+							<stop offset="0%" class="[stop-color:#deb887] dark:[stop-color:#92400e]" />
+							<stop offset="100%" class="[stop-color:#c2956a] dark:[stop-color:#78350f]" />
+						</radialGradient>
+						<!-- Grass texture pattern -->
+						<pattern id="grass-texture" width="8" height="8" patternUnits="userSpaceOnUse">
+							<rect width="8" height="8" class="fill-green-500/10 dark:fill-green-900/20" />
+							<line x1="0" y1="4" x2="4" y2="0" stroke-width="0.5" class="stroke-green-600/20 dark:stroke-green-700/30" />
+							<line x1="4" y1="8" x2="8" y2="4" stroke-width="0.5" class="stroke-green-600/20 dark:stroke-green-700/30" />
+						</pattern>
+					</defs>
+					
+					<!-- Outfield grass background -->
+					<rect width="300" height="260" fill="url(#outfield-grass)" />
+					<rect width="300" height="260" fill="url(#grass-texture)" />
+					
+					<!-- Foul lines extending to outfield -->
+					<line x1="150" y1="230" x2="295" y2="85" stroke-width="2" class="stroke-white/80 dark:stroke-white/40" />
+					<line x1="150" y1="230" x2="5" y2="85" stroke-width="2" class="stroke-white/80 dark:stroke-white/40" />
+					
+					<!-- Outfield warning track arc -->
+					<path 
+						d="M 5,85 Q 150,-40 295,85" 
+						fill="none" 
+						stroke-width="8" 
+						class="stroke-amber-800/30 dark:stroke-amber-900/40"
+					/>
+					
+					<!-- Infield dirt diamond -->
 					<polygon
-						points="100,170 165,105 100,40 35,105"
-						class="fill-amber-300 dark:fill-amber-900"></polygon>
+						points="150,230 235,145 150,60 65,145"
+						fill="url(#infield-dirt)"
+					/>
+					
+					<!-- Infield grass cutout -->
 					<polygon
-						points="100,150 145,105 100,60 55,105"
-						class="fill-green-200 dark:fill-emerald-950"></polygon>
-					<circle
-						cx="100"
-						cy="105"
-						r="9"
-						stroke-width="0.5"
-						class="fill-amber-300 dark:fill-amber-900 stroke-white/70 dark:stroke-white/30"
-					></circle>
+						points="150,200 205,145 150,90 95,145"
+						class="fill-green-500 dark:fill-green-900"
+					/>
 					<polygon
-						points="100,162 107,170 100,178 93,170"
-						stroke-width="0.6"
-						class="fill-white stroke-neutral-500"></polygon>
+						points="150,200 205,145 150,90 95,145"
+						fill="url(#grass-texture)"
+					/>
+					
+					<!-- Base paths (white chalk lines) -->
+					<line x1="150" y1="218" x2="223" y2="145" stroke-width="1.5" class="stroke-white/60 dark:stroke-white/30" />
+					<line x1="223" y1="145" x2="150" y2="72" stroke-width="1.5" class="stroke-white/60 dark:stroke-white/30" />
+					<line x1="150" y1="72" x2="77" y2="145" stroke-width="1.5" class="stroke-white/60 dark:stroke-white/30" />
+					<line x1="77" y1="145" x2="150" y2="218" stroke-width="1.5" class="stroke-white/60 dark:stroke-white/30" />
+					
+					<!-- Pitcher's mound -->
+					<ellipse
+						cx="150"
+						cy="145"
+						rx="14"
+						ry="10"
+						fill="url(#mound)"
+					/>
+					<rect x="146" y="143" width="8" height="2" rx="0.5" class="fill-white" />
+					
+					<!-- Batter's box area -->
+					<rect x="130" y="212" width="40" height="26" rx="2" class="fill-amber-700/40 dark:fill-amber-900/50" />
+					
+					<!-- Home plate -->
 					<polygon
-						data-base="1"
-						points="160,97 167,105 160,113 153,105"
-						stroke-width="0.6"
-						class="fill-white stroke-neutral-500"></polygon>
-					<polygon
-						data-base="2"
-						points="100,32 107,40 100,48 93,40"
-						stroke-width="0.6"
-						class="fill-white stroke-neutral-500"></polygon>
-					<polygon
-						data-base="3"
-						points="40,97 47,105 40,113 33,105"
-						stroke-width="0.6"
-						class="fill-white stroke-neutral-500"></polygon>
+						points="150,216 158,222 158,230 142,230 142,222"
+						class="fill-white stroke-neutral-400 dark:stroke-neutral-600"
+						stroke-width="1"
+					/>
+					
+					<!-- First base -->
+					<g data-base-group="1">
+						<rect
+							data-base="1"
+							x="218"
+							y="140"
+							width="12"
+							height="12"
+							rx="1"
+							transform="rotate(45 224 146)"
+							class="fill-white stroke-neutral-400 dark:stroke-neutral-600"
+							stroke-width="1"
+						/>
+					</g>
+					
+					<!-- Second base -->
+					<g data-base-group="2">
+						<rect
+							data-base="2"
+							x="144"
+							y="66"
+							width="12"
+							height="12"
+							rx="1"
+							transform="rotate(45 150 72)"
+							class="fill-white stroke-neutral-400 dark:stroke-neutral-600"
+							stroke-width="1"
+						/>
+					</g>
+					
+					<!-- Third base -->
+					<g data-base-group="3">
+						<rect
+							data-base="3"
+							x="70"
+							y="140"
+							width="12"
+							height="12"
+							rx="1"
+							transform="rotate(45 76 146)"
+							class="fill-white stroke-neutral-400 dark:stroke-neutral-600"
+							stroke-width="1"
+						/>
+					</g>
+					
+					<!-- Runner indicators (circles that light up) -->
 					<circle
 						data-runner="1"
-						cx="160"
-						cy="105"
-						r="7"
+						cx="224"
+						cy="146"
+						r="8"
 						opacity="0"
 						fill="#ec4899"
-						class="transition-opacity duration-300"></circle>
+						class="transition-opacity duration-300"
+					/>
 					<circle
 						data-runner="2"
-						cx="100"
-						cy="40"
-						r="7"
+						cx="150"
+						cy="72"
+						r="8"
 						opacity="0"
 						fill="#ec4899"
-						class="transition-opacity duration-300"></circle>
+						class="transition-opacity duration-300"
+					/>
 					<circle
 						data-runner="3"
-						cx="40"
-						cy="105"
-						r="7"
+						cx="76"
+						cy="146"
+						r="8"
 						opacity="0"
 						fill="#ec4899"
-						class="transition-opacity duration-300"></circle>
+						class="transition-opacity duration-300"
+					/>
 				</svg>
+				
+				<!-- Runner name labels positioned outside the diamond -->
 				<div
-					id="pitcher-pill"
-					class="absolute left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-neutral-900/90 dark:bg-neutral-100/90 text-white dark:text-neutral-900 text-[10px] font-semibold whitespace-nowrap shadow-md"
-					style="top: 60%;"
+					data-runner-label="1"
+					class="absolute px-2 py-0.5 rounded-full text-white text-[9px] font-bold whitespace-nowrap shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none"
+					style="right: 2%; top: 48%; transform: translateY(-50%); background-color: #ec4899;"
 				>
 				</div>
 				<div
+					data-runner-label="2"
+					class="absolute px-2 py-0.5 rounded-full text-white text-[9px] font-bold whitespace-nowrap shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none"
+					style="left: 50%; top: 15%; transform: translateX(-50%); background-color: #ec4899;"
+				>
+				</div>
+				<div
+					data-runner-label="3"
+					class="absolute px-2 py-0.5 rounded-full text-white text-[9px] font-bold whitespace-nowrap shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none"
+					style="left: 2%; top: 48%; transform: translateY(-50%); background-color: #ec4899;"
+				>
+				</div>
+				
+				<!-- Pitcher pill -->
+				<div
+					id="pitcher-pill"
+					class="absolute left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-neutral-900/90 dark:bg-neutral-100/90 text-white dark:text-neutral-900 text-[10px] font-semibold whitespace-nowrap shadow-md"
+					style="top: 52%;"
+				>
+				</div>
+				
+				<!-- Batter pill -->
+				<div
 					id="batter-pill"
 					class="absolute left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-white text-[10px] font-semibold whitespace-nowrap shadow-md"
-					style="top: 91%; background-color: #ec4899;"
+					style="top: 88%; background-color: #ec4899;"
 				>
 				</div>
 			</div>
@@ -837,16 +942,140 @@ const flamingosPitching = computePitchers('top') // FLM pitches when SRP bats
 	}
 
 	function computeLines(upTo: number) {
-		const away: (number | string)[] = Array(game.innings).fill('-')
-		const home: (number | string)[] = Array(game.innings).fill('-')
-		for (let i = 0; i <= upTo; i++) {
-			const p = plays[i]
-			const arr = p.half === 'top' ? away : home
-			const cell = arr[p.inning - 1]
-			arr[p.inning - 1] = (typeof cell === 'number' ? cell : 0) + p.runs
+			const away: (number | string)[] = Array(game.innings).fill('-')
+			const home: (number | string)[] = Array(game.innings).fill('-')
+			for (let i = 0; i <= upTo; i++) {
+				const p = plays[i]
+				const arr = p.half === 'top' ? away : home
+				const cell = arr[p.inning - 1]
+				arr[p.inning - 1] = (typeof cell === 'number' ? cell : 0) + p.runs
+			}
+			return { away, home }
 		}
-		return { away, home }
-	}
+
+		// Track runner names on bases by simulating the game state
+		function getRunnerAtBase(playIdx: number, base: number): string {
+			// Simulate the game to track who is on each base
+			// bases array: [1B, 2B, 3B] with runner names or null
+			let runners: (string | null)[] = [null, null, null]
+			let currentInning = 0
+			let currentHalf: 'top' | 'bottom' = 'top'
+			
+			for (let i = 0; i <= playIdx; i++) {
+				const p = plays[i]
+				
+				// Reset runners when half-inning changes
+				if (p.inning !== currentInning || p.half !== currentHalf) {
+					runners = [null, null, null]
+					currentInning = p.inning
+					currentHalf = p.half
+				}
+				
+				// Get the batter name (clean up special markers)
+				const batter = p.batter.replace(/\s*\(running\)|\(at-bat\)/g, '').trim()
+				
+				// Skip non-batting events
+				if (p.batter.includes('(running)')) {
+					// This is a baserunning event, just update to the result state
+					// The bases state in the play already reflects who is where
+					// We need to figure out who moved where
+					continue
+				}
+				
+				// Process based on result - the bases array shows the END state
+				// We need to figure out who is where based on:
+				// 1. Current runners before this at-bat
+				// 2. What the batter did
+				// 3. Where the play description says runners went
+				
+				const prevRunners = [...runners]
+				
+				// Clear runners who scored
+				if (p.scorers) {
+					for (const scorer of p.scorers) {
+						const scorerClean = scorer.trim()
+						for (let b = 0; b < 3; b++) {
+							if (runners[b]?.includes(scorerClean) || scorerClean.includes(runners[b] ?? '___')) {
+								runners[b] = null
+							}
+						}
+					}
+				}
+				
+				// Now assign runners based on the result
+				if (p.result === 'single' || p.result === 'walk') {
+					// Batter goes to first, others advance as needed
+					// Use the bases state to determine final positions
+					if (p.bases[0]) {
+						// Someone on first - could be batter or previous runner
+						// If single/walk, batter is on first
+						runners[0] = batter
+					}
+					// Advance other runners based on bases state
+					if (p.bases[1] && !p.bases[1] === prevRunners[1] !== null) {
+						// Someone moved to second
+						if (prevRunners[0]) runners[1] = prevRunners[0]
+					}
+					if (p.bases[2] && prevRunners[1]) {
+						runners[2] = prevRunners[1]
+					}
+				} else if (p.result === 'double') {
+					// Batter goes to second
+					runners = [null, batter, runners[2]]
+					// Previous runners likely scored or are on 3rd
+					if (p.bases[2] && prevRunners[0]) {
+						runners[2] = prevRunners[0]
+					}
+				} else if (p.result === 'triple') {
+					// Batter goes to third
+					runners = [null, null, batter]
+				} else if (p.result === 'home_run') {
+					// Everyone scores, bases empty
+					runners = [null, null, null]
+				} else if (p.result === 'strikeout' || p.result === 'flyout' || p.result === 'popout' || p.result === 'groundout') {
+					// Runners may advance on outs - check description for steals
+					// If bases changed, runners may have moved
+				} else if (p.result === 'doubleplay') {
+					// Two outs made, bases often cleared or reduced
+				}
+				
+				// Final pass: sync with actual bases state
+				// If a base should be occupied but we don't have a name, keep previous
+				// If a base shouldn't be occupied, clear it
+				for (let b = 0; b < 3; b++) {
+					if (!p.bases[b]) {
+						runners[b] = null
+					} else if (!runners[b]) {
+						// Base is occupied but we don't know by whom
+						// Check if it's the batter
+						if (b === 0 && (p.result === 'single' || p.result === 'walk')) {
+							runners[b] = batter
+						} else if (b === 1 && p.result === 'double') {
+							runners[b] = batter
+						} else if (b === 2 && p.result === 'triple') {
+							runners[b] = batter
+						} else {
+							// Keep whoever was there or moved up
+							if (b > 0 && prevRunners[b - 1]) {
+								runners[b] = prevRunners[b - 1]
+							} else if (prevRunners[b]) {
+								runners[b] = prevRunners[b]
+							}
+						}
+					}
+				}
+			}
+			
+			// Return abbreviated name for the requested base
+			const name = runners[base - 1]
+			if (!name) return ''
+			// Abbreviate: "First Last" -> "F. Last" or just last name if short
+			const parts = name.split(' ')
+			if (parts.length >= 2) {
+				return `${parts[0][0]}. ${parts[parts.length - 1]}`
+			}
+			return name
+		}
 
 	function render() {
 		const p = plays[idx]
@@ -909,13 +1138,24 @@ const flamingosPitching = computePitchers('top') // FLM pitches when SRP bats
 		homeRow.classList.toggle('dark:bg-pink-950/30', !battingAway)
 
 		// Runners — fill color matches batting team
-		for (let b = 1; b <= 3; b++) {
-			const runner = $(`[data-runner="${b}"]`) as SVGElement
-			if (runner) {
-				runner.setAttribute('opacity', p.bases[b - 1] ? '1' : '0')
-				runner.setAttribute('fill', teamColor)
+			for (let b = 1; b <= 3; b++) {
+				const runner = $(`[data-runner="${b}"]`) as SVGElement
+				const runnerLabel = $(`[data-runner-label="${b}"]`) as HTMLElement
+				const hasRunner = p.bases[b - 1]
+				if (runner) {
+					runner.setAttribute('opacity', hasRunner ? '1' : '0')
+					runner.setAttribute('fill', teamColor)
+				}
+				if (runnerLabel) {
+					runnerLabel.style.opacity = hasRunner ? '1' : '0'
+					runnerLabel.style.backgroundColor = teamColor
+					// Try to get runner name from previous plays
+					if (hasRunner) {
+						const runnerName = getRunnerAtBase(idx, b)
+						runnerLabel.textContent = runnerName || `${b}B`
+					}
+				}
 			}
-		}
 
 		// Outs — color matches batting team
 		for (let o = 1; o <= 3; o++) {
