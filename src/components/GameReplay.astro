@@ -1264,10 +1264,11 @@ const flamingosPitching = computePitchers('top') // FLM pitches when SRP bats
 	$('#play-toggle').addEventListener('click', () => {
 		playing ? stop() : start()
 	})
-	$('#replay-gamestream').addEventListener('click', () => {
+	$('#replay-gamestream').addEventListener('click', (e) => {
 		stop()
 		activateTab('replay')
 		jumpTo(0)
+		;(e.currentTarget as HTMLElement).parentElement?.remove()
 		root.scrollIntoView({ behavior: 'smooth', block: 'start' })
 	})
 
