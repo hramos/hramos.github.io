@@ -401,6 +401,22 @@ const flamingosPitching = computePitchers('top') // FLM pitches when SRP bats
 					class="w-full block"
 					aria-label="Baseball diamond showing current base runners"
 				>
+					<defs>
+						<filter
+							id="baseShadow"
+							x="-50%"
+							y="-50%"
+							width="200%"
+							height="200%"
+						>
+							<feDropShadow
+								dx="0.6"
+								dy="0.6"
+								stdDeviation="0.6"
+								flood-opacity="0.35"
+							></feDropShadow>
+						</filter>
+					</defs>
 					<rect
 						width="200"
 						height="200"
@@ -432,24 +448,53 @@ const flamingosPitching = computePitchers('top') // FLM pitches when SRP bats
 						stroke-width="0.5"
 						class="fill-amber-300 dark:fill-amber-900 stroke-white/70 dark:stroke-white/30"
 					></circle>
+					<rect
+						x="97"
+						y="104"
+						width="6"
+						height="1.5"
+						rx="0.5"
+						class="fill-white"></rect>
 					<polygon
 						points="100,162 107,170 100,178 93,170"
 						stroke-width="0.6"
+						filter="url(#baseShadow)"
 						class="fill-white stroke-neutral-500"></polygon>
+					<rect
+						x="78"
+						y="160"
+						width="12"
+						height="20"
+						fill="none"
+						stroke-width="0.5"
+						stroke-dasharray="2,1.5"
+						class="stroke-white/70 dark:stroke-white/30"></rect>
+					<rect
+						x="110"
+						y="160"
+						width="12"
+						height="20"
+						fill="none"
+						stroke-width="0.5"
+						stroke-dasharray="2,1.5"
+						class="stroke-white/70 dark:stroke-white/30"></rect>
 					<polygon
 						data-base="1"
 						points="160,97 167,105 160,113 153,105"
 						stroke-width="0.6"
+						filter="url(#baseShadow)"
 						class="fill-white stroke-neutral-500"></polygon>
 					<polygon
 						data-base="2"
 						points="100,32 107,40 100,48 93,40"
 						stroke-width="0.6"
+						filter="url(#baseShadow)"
 						class="fill-white stroke-neutral-500"></polygon>
 					<polygon
 						data-base="3"
 						points="40,97 47,105 40,113 33,105"
 						stroke-width="0.6"
+						filter="url(#baseShadow)"
 						class="fill-white stroke-neutral-500"></polygon>
 					<circle
 						data-runner="1"
