@@ -11,8 +11,15 @@
 	--color-foreground-dark: #f1f5f9;
 	--color-background: #f8fafc;
 	--color-background-dark: #1e293b;
-	--color-primary: #475569;
-	--color-primary-dark: #cbd5e1;
+	--color-primary: #2563eb;
+	--color-primary-dark: #60a5fa;
+
+	--color-accent-red: #dc2626;
+	--color-accent-red-dark: #f87171;
+	--color-accent-green: #16a34a;
+	--color-accent-green-dark: #4ade80;
+	--color-accent-blue: #2563eb;
+	--color-accent-blue-dark: #60a5fa;
 }
 
 html {
@@ -29,7 +36,7 @@ html {
 }
 
 .btn-primary {
-	@apply w-fit flex gap-2 bg-foreground text-background dark:bg-foreground-dark dark:text-background-dark px-5 py-3 md:px-4 md:py-2 rounded-lg items-center mt-4 hover:opacity-75 transition-opacity;
+	@apply w-fit flex gap-2 bg-accent-red text-background dark:bg-accent-red-dark dark:text-background-dark px-5 py-3 md:px-4 md:py-2 rounded-lg items-center mt-4 hover:opacity-75 transition-opacity;
 }
 
 .btn-secondary {
@@ -37,7 +44,7 @@ html {
 }
 
 .section-title {
-	@apply text-4xl font-semibold pb-3;
+	@apply text-4xl font-semibold pb-3 border-l-4 border-accent-green dark:border-accent-green-dark pl-3;
 }
 
 .posts-grid-container {
