@@ -4,6 +4,12 @@ import GameReplay from '../../components/GameReplay.astro'
 
 const youtubeId = '71FvzzR2uwE'
 const embedUrl = `https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0`
+// NOTE: presigned S3 URL, expires 2026-05-17 ~06:00. Swap for a
+// permanent public URL (or a longer-lived presigned URL with
+// Content-Disposition: attachment) before sharing the page widely.
+const downloadUrl =
+	'https://phx-sll-baseball-736486785671-us-east-1-an.s3.us-east-1.amazonaws.com/2026-05-16-phx-sll-flamingos.mp4?response-content-disposition=inline&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Security-Token=IQoJb3JpZ2luX2VjENH%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLWVhc3QtMSJIMEYCIQD7OgsHItP01%2BZ4rgM6xDcBYGTww4ZA7UoerfteRDjhrwIhAMyOaDnHZEyuYGz%2F5cIAij645h%2Bvf2ZrZQOlsnuA8b7uKsIDCJr%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEQABoMNzM2NDg2Nzg1NjcxIgyD5K4WhKeu8R4XDEEqlgMu9hCgnCt2e8FODuHjcRCSDLMzudkuoL%2FNYoujBdEp21iG4NS0GQ4tl6JmJJ3CmCtXCIG7%2FWq2chloPQ6RWrr48qBC70OWJD%2Fka2jI2Rh0xSgjy6nDPVhQH%2BtAvYTuFXO%2FRoFzT1ModIfTak%2F68PHPU3E1IghWAMMQy%2BU%2B641pz5ePvh3Ex9Cln93WiSjI910PQ2lp%2FiFRRVSiZ8OKe9n3y8YsIVPc8jIGeODmikz7GkjhvR%2F79n2D9zfjoCg0S7Q7QMKrJ2LlmlokSQhGqw0GPW4CmCoyUCU7bMIExNOU5f3UNtOvOY0NWvt3vZhIvXNw5iGzjubHp44gHwJJ%2FWPdcyad2PSRKYgMyZ%2BoSaijGAtnVqDqa1nLkpmEJTsMTYOA33a%2FocjEaPon9iEQ3yNqxaX4j5YnAiscmiAFwmzhlvH3k%2B27nPTGp3OwZ7%2BlKI%2BBeMkSrreT1ZuAtKzzcqvD0zsO2d2hf4t%2FxBK7RgV8iYSR4qqddTN7ax71w6j9rO4gS%2FoBLBMT8oOcGwvyu5LtzpjJ2Fy%2FMPrKo9AGOt0CIgKijBwXY1jwmjgWmLldjwnZtaDLTEsY7EaEWGZH65xheq8HrSu86POGJ51cCfYtEGcEMkwQyTJrhXfUxxFAQ9ptGPs%2BC%2B28M%2F8iZlGqQNXPDSeUDZzrRrTB7AqylAgZQpe9GkIn1rijY4yWS8IdH8OU8zJ96WfwTP0wSo5FbirGH4mvpW9tCIxG7mfIka0XbhcvSOJk8IAfBQVRl9TFxZYMl7zqTotPPwUhRWkBKsv5F6wUOKqaxRfAkgEi0Ic3H%2BS2jP0VdEZaea8hYZH%2BDVf8sIRyj29wG6O7w9oXKlIiyb1Bt%2FW4QY77wEYEb5flcrYi9UYSv9oqPBJwVmxz%2BBdjDBcrVSzjmtrhm0EohjqJRMsXbETMCwsZ7QS4846ZD0%2BTNTo4xRIhMc3Qx2YhbDwlodOnKH%2FVp51BbX4iUaFU1DOzWwXc531%2FAubC3CPBQtGmNl4HitKPR7NZbg%3D%3D&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIA2W6QIQKDVWSQ77KO%2F20260517%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260517T010329Z&X-Amz-Expires=43200&X-Amz-SignedHeaders=host&X-Amz-Signature=53fc2dd431664667233eea55d374b34c101e9ceac03b2bd865b75ccf450c1888'
+const downloadFilename = '2026-05-16-phx-sll-flamingos.mp4'
 ---
 
 <BaseLayout
@@ -36,6 +42,66 @@ const embedUrl = `https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0`
 			></iframe>
 		</div>
 
+		<div
+			class="mt-6 flex flex-wrap items-center justify-center gap-3"
+		>
+			<a
+				href={downloadUrl}
+				download={downloadFilename}
+				class="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-neutral-900 text-white hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200 transition-colors font-medium"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="20"
+					height="20"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+					<polyline points="7 10 12 15 17 10"></polyline>
+					<line x1="12" y1="15" x2="12" y2="3"></line>
+				</svg>
+				Download video
+			</a>
+			<span class="relative inline-flex group">
+				<button
+					type="button"
+					aria-label="Download tip"
+					title="If &quot;Download video&quot; opens the file in a new tab instead of saving it, right-click the button and choose &quot;Save link as…&quot;."
+					class="inline-flex items-center justify-center w-7 h-7 rounded-full border border-neutral-300 dark:border-neutral-700 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-500 transition-colors"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="14"
+						height="14"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<circle cx="12" cy="12" r="10"></circle>
+						<line x1="12" y1="16" x2="12" y2="12"></line>
+						<line x1="12" y1="8" x2="12.01" y2="8"></line>
+					</svg>
+				</button>
+				<span
+					role="tooltip"
+					class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 px-3 py-2 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-xs leading-snug shadow-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-10"
+				>
+					If "Download video" opens the file in a new tab instead of
+					saving it, right-click the button and choose "Save link
+					as…".
+				</span>
+			</span>
+		</div>
 	</section>
 
 	<section class="app-container pb-6">
