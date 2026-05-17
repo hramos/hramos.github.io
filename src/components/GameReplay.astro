@@ -295,7 +295,7 @@ const flamingosPitching = computePitchers('top') // FLM pitches when SRP bats
 				></span>
 			</span>
 		</div>
-		<div class="mt-4 flex justify-center">
+		<div id="replay-gamestream-wrap" class="mt-4 flex justify-center">
 			<button
 				id="replay-gamestream"
 				type="button"
@@ -1099,6 +1099,10 @@ const flamingosPitching = computePitchers('top') // FLM pitches when SRP bats
 		// Controls
 		;($('#play-prev') as HTMLButtonElement).disabled = idx === 0
 		;($('#play-next') as HTMLButtonElement).disabled = idx === total - 1
+		;($('#replay-gamestream-wrap') as HTMLElement).classList.toggle(
+			'hidden',
+			idx !== total - 1
+		)
 
 		if (idx === total - 1 && playing) stop()
 	}
@@ -1264,11 +1268,10 @@ const flamingosPitching = computePitchers('top') // FLM pitches when SRP bats
 	$('#play-toggle').addEventListener('click', () => {
 		playing ? stop() : start()
 	})
-	$('#replay-gamestream').addEventListener('click', (e) => {
+	$('#replay-gamestream').addEventListener('click', () => {
 		stop()
 		activateTab('replay')
 		jumpTo(0)
-		;(e.currentTarget as HTMLElement).parentElement?.remove()
 		root.scrollIntoView({ behavior: 'smooth', block: 'start' })
 	})
 
