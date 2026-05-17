@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+---
+
+<BaseLayout>
+	<main class="app-container pt-36">
+		<h1 class="text-6xl pb-2 font-bold">RGB Palette</h1>
+	</main>
+	<section class="app-container py-12 mb-8 flex justify-center">
+		<div class="rgb-wheel" aria-hidden="true"></div>
+	</section>
+</BaseLayout>
+
+<style>
+	.rgb-wheel {
+		width: min(80vw, 28rem);
+		aspect-ratio: 1 / 1;
+		border-radius: 9999px;
+		background: conic-gradient(
+			from 0deg,
+			#ff0000 0deg,
+			#ffff00 60deg,
+			#00ff00 120deg,
+			#00ffff 180deg,
+			#0000ff 240deg,
+			#ff00ff 300deg,
+			#ff0000 360deg
+		);
+		animation: rgb-spin 6s linear infinite;
+		box-shadow: 0 0 60px rgba(255, 255, 255, 0.15);
+	}
+
+	@keyframes rgb-spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.rgb-wheel {
+			animation: none;
+		}
+	}
+</style>
