@@ -16,92 +16,12 @@ const downloadFilename = 'flamingos-2026.mp4'
 	ogTitle="Watch the Flamingos Spring 2026 Championship game"
 	hideFooter
 >
-	<main class="app-container pt-24">
-		<h1 class="text-6xl pb-2 font-bold">Flamingos</h1>
-		<p class="text-lg text-neutral-600 dark:text-neutral-400">
-			Spring 2026 Championship Game
-		</p>
-	</main>
-
-	<section class="app-container pt-12 pb-6">
-		<div
-			class="relative w-full rounded-xl overflow-hidden bg-black shadow-lg"
-			style="aspect-ratio: 16 / 9;"
-		>
-			<iframe
-				class="absolute inset-0 w-full h-full"
-				src={embedUrl}
-				title="Flamingos"
-				frameborder="0"
-				allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-				referrerpolicy="strict-origin-when-cross-origin"
-				allowfullscreen
-			></iframe>
-		</div>
-
-		<div
-			class="mt-6 flex flex-wrap items-center justify-center gap-3"
-		>
-			<a
-				href={downloadUrl}
-				download={downloadFilename}
-				class="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-neutral-900 text-white hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200 transition-colors font-medium"
-			>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="20"
-					height="20"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					aria-hidden="true"
-				>
-					<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-					<polyline points="7 10 12 15 17 10"></polyline>
-					<line x1="12" y1="15" x2="12" y2="3"></line>
-				</svg>
-				Download 68.9 GB video
-			</a>
-			<span class="relative inline-flex group">
-				<button
-					type="button"
-					aria-label="Download size warning"
-					title="This is a large video. Stream on YouTube above unless you really need the full-size original."
-					class="inline-flex items-center justify-center w-7 h-7 rounded-full border border-neutral-300 dark:border-neutral-700 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-500 transition-colors"
-				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						width="14"
-						height="14"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						aria-hidden="true"
-					>
-						<circle cx="12" cy="12" r="10"></circle>
-						<line x1="12" y1="16" x2="12" y2="12"></line>
-						<line x1="12" y1="8" x2="12.01" y2="8"></line>
-					</svg>
-				</button>
-				<span
-					role="tooltip"
-					class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 px-3 py-2 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-xs leading-snug shadow-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-10"
-				>
-					This is a large video. Stream on YouTube above unless you
-					really need the full-size original.
-				</span>
-			</span>
-		</div>
-	</section>
-
-	<section class="app-container pb-6">
-		<GameReplay />
+	<section class="pt-24 pb-6 sm:px-12 2xl:px-16 sm:container sm:mx-auto">
+		<GameReplay
+			youtubeId={youtubeId}
+			downloadUrl={downloadUrl}
+			downloadFilename={downloadFilename}
+		/>
 	</section>
 
 	<section class="app-container pb-12">
