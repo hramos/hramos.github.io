@@ -29,6 +29,7 @@ export interface Play {
 	bases: Bases // bases occupied AFTER this play
 	away: number // cumulative away score after this play
 	home: number // cumulative home score after this play
+	scorers?: string[] // names of runners who scored on this play (length === runs)
 }
 
 export interface Game {
@@ -111,6 +112,7 @@ export const game: Game = {
 			bases: [true, false, true],
 			away: 1,
 			home: 0,
+			scorers: ['Jonathan K'],
 		},
 		{
 			inning: 1,
@@ -408,6 +410,7 @@ export const game: Game = {
 			bases: [false, true, false],
 			away: 1,
 			home: 1,
+			scorers: ['Austin Needham'],
 		},
 		{
 			inning: 3,
@@ -433,6 +436,7 @@ export const game: Game = {
 			bases: [false, false, false],
 			away: 1,
 			home: 3,
+			scorers: ['Corbin Levac', 'Brady Dunn'],
 		},
 		// --- TOP 4 ---
 		{
@@ -532,6 +536,7 @@ export const game: Game = {
 			bases: [false, false, false],
 			away: 1,
 			home: 4,
+			scorers: ['Oliver Carr'],
 		},
 		{
 			inning: 4,
@@ -681,6 +686,7 @@ export const game: Game = {
 			bases: [true, true, true],
 			away: 1,
 			home: 5,
+			scorers: ['Austin Needham'],
 		},
 		{
 			inning: 5,
@@ -743,6 +749,7 @@ export const game: Game = {
 			bases: [true, false, false],
 			away: 4,
 			home: 5,
+			scorers: ['Beckham H', 'Jackson C', 'Jonathan K'],
 		},
 		{
 			inning: 6,
@@ -780,6 +787,7 @@ export const game: Game = {
 			bases: [true, false, false],
 			away: 5,
 			home: 5,
+			scorers: ['Ben F'],
 		},
 		{
 			inning: 6,
@@ -805,6 +813,7 @@ export const game: Game = {
 			bases: [false, false, false],
 			away: 6,
 			home: 5,
+			scorers: ['Eric M'],
 		},
 		// --- BOTTOM 6 ---
 		{

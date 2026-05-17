@@ -1,242 +1,273 @@
 ---
-import { game } from '../data/flamingos-game'
+import { game, type Play } from '../data/flamingos-game'
 
 const gameJson = JSON.stringify(game)
 const innings = Array.from({ length: game.innings }, (_, i) => i + 1)
+
+// ---- Box-score derivation (static for the whole game) ----
+
+function pitcherForPlay(p: Play): string {
+	if (p.half === 'top') {
+		if (p.inning === 1) return 'Brady Dunn'
+		if (p.inning === 2)
+			return p.batter === 'Henry G' ? 'Corbin Levac' : 'Brady Dunn'
+		if (p.inning <= 5) return 'Corbin Levac'
+		return p.batter === 'Byron M' || p.batter === 'Henry G (at-bat)'
+			? 'Owen Lane'
+			: 'Corbin Levac'
+	}
+	if (p.inning <= 3) return 'Beckham H'
+	if (p.inning === 4) return 'Andrew M'
+	return 'Jackson C'
+}
+
+const HIT_RESULTS = ['single', 'double', 'triple', 'home_run']
+const AB_RESULTS = [
+	'single',
+	'double',
+	'triple',
+	'home_run',
+	'strikeout',
+	'groundout',
+	'flyout',
+	'popout',
+	'doubleplay',
+]
+
+function rbiFor(p: Play): number {
+	if (p.runs === 0) return 0
+	const s = p.summary.toLowerCase()
+	if (
+		s.includes('passed ball') ||
+		s.includes('steal home') ||
+		s.includes('stole home') ||
+		s.includes('on error')
+	)
+		return 0
+	if (HIT_RESULTS.includes(p.result)) return p.runs
+	if (
+		p.result === 'walk' &&
+		p.bases[0] &&
+		p.bases[1] &&
+		p.bases[2]
+	)
+		return p.runs
+	if (['groundout', 'flyout', 'popout', 'doubleplay'].includes(p.result))
+		return p.runs
+	return 0
+}
+
+interface BatterStats {
+	name: string
+	AB: number
+	R: number
+	H: number
+	RBI: number
+	BB: number
+	SO: number
+}
+
+interface PitcherStats {
+	name: string
+	outs: number
+	H: number
+	R: number
+	BB: number
+	SO: number
+}
+
+function computeBatters(side: 'top' | 'bottom'): {
+	lineup: BatterStats[]
+	totals: BatterStats
+} {
+	const stats = new Map<string, BatterStats>()
+	const order: string[] = []
+	const init = (name: string): BatterStats => {
+		if (!stats.has(name)) {
+			stats.set(name, {
+				name,
+				AB: 0,
+				R: 0,
+				H: 0,
+				RBI: 0,
+				BB: 0,
+				SO: 0,
+			})
+			order.push(name)
+		}
+		return stats.get(name)!
+	}
+	for (const p of game.plays) {
+		if (
+			p.half === side &&
+			!p.batter.includes('(running)') &&
+			!p.batter.includes('(at-bat)')
+		) {
+			const s = init(p.batter)
+			if (AB_RESULTS.includes(p.result)) s.AB++
+			if (HIT_RESULTS.includes(p.result)) s.H++
+			if (p.result === 'walk') s.BB++
+			if (p.result === 'strikeout') s.SO++
+			s.RBI += rbiFor(p)
+		}
+		if (p.scorers && p.half === side) {
+			for (const scorer of p.scorers) init(scorer).R++
+		}
+	}
+	const lineup = order.map((n) => stats.get(n)!)
+	const totals: BatterStats = {
+		name: 'TEAM',
+		AB: 0,
+		R: 0,
+		H: 0,
+		RBI: 0,
+		BB: 0,
+		SO: 0,
+	}
+	for (const s of lineup) {
+		totals.AB += s.AB
+		totals.R += s.R
+		totals.H += s.H
+		totals.RBI += s.RBI
+		totals.BB += s.BB
+		totals.SO += s.SO
+	}
+	return { lineup, totals }
+}
+
+function computePitchers(side: 'top' | 'bottom'): {
+	pitchers: PitcherStats[]
+	totals: PitcherStats
+} {
+	const stats = new Map<string, PitcherStats>()
+	const order: string[] = []
+	for (let i = 0; i < game.plays.length; i++) {
+		const p = game.plays[i]
+		if (p.half !== side) continue
+		const pitcher = pitcherForPlay(p)
+		if (!stats.has(pitcher)) {
+			stats.set(pitcher, {
+				name: pitcher,
+				outs: 0,
+				H: 0,
+				R: 0,
+				BB: 0,
+				SO: 0,
+			})
+			order.push(pitcher)
+		}
+		const s = stats.get(pitcher)!
+		const prev = i > 0 ? game.plays[i - 1] : null
+		const sameHalf =
+			prev !== null && prev.half === p.half && prev.inning === p.inning
+		const prevOuts = sameHalf ? prev!.outs : 0
+		s.outs += p.outs - prevOuts
+		s.R += p.runs
+		if (HIT_RESULTS.includes(p.result)) s.H++
+		if (p.result === 'walk') s.BB++
+		if (p.result === 'strikeout') s.SO++
+	}
+	const pitchers = order.map((n) => stats.get(n)!)
+	const totals: PitcherStats = {
+		name: 'TEAM',
+		outs: 0,
+		H: 0,
+		R: 0,
+		BB: 0,
+		SO: 0,
+	}
+	for (const s of pitchers) {
+		totals.outs += s.outs
+		totals.H += s.H
+		totals.R += s.R
+		totals.BB += s.BB
+		totals.SO += s.SO
+	}
+	return { pitchers, totals }
+}
+
+function formatIP(outs: number): string {
+	return `${Math.floor(outs / 3)}.${outs % 3}`
+}
+
+// Away (Serpientes) bats top, pitches bottom.
+const serpientesBatting = computeBatters('top')
+const flamingosBatting = computeBatters('bottom')
+const serpientesPitching = computePitchers('bottom') // SRP pitches when FLM bats
+const flamingosPitching = computePitchers('top') // FLM pitches when SRP bats
 ---
+
+{/* Safelist: bg-teal-50 dark:bg-teal-950/30 bg-pink-50 dark:bg-pink-950/30 text-teal-600 dark:text-teal-400 text-pink-600 dark:text-pink-400 */}
+<span
+	class="hidden bg-teal-50 dark:bg-teal-950/30 bg-pink-50 dark:bg-pink-950/30 text-teal-600 dark:text-teal-400 text-pink-600 dark:text-pink-400"
+></span>
 
 <section
 	id="game-replay"
-	class="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden"
+	class="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900"
 	data-game={gameJson}
 >
 	<header
-		class="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800"
+		class="px-6 pt-5 pb-4 border-b border-neutral-200 dark:border-neutral-800"
 	>
-		<p
-			class="text-xs font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400"
+		<div
+			class="flex items-center justify-between text-xs font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400"
 		>
-			Play by Play
-		</p>
-		<p
-			class="mt-1 text-lg font-semibold text-neutral-900 dark:text-neutral-100"
+			<span>
+				Play by Play built with{' '}
+				<a
+					href="#wallfacer-upsell"
+					class="text-pink-600 dark:text-pink-400 hover:underline normal-case tracking-normal"
+				>
+					Wallfacer
+				</a>
+			</span>
+			<span>{game.date} • Final</span>
+		</div>
+		<div
+			class="mt-3 text-center text-sm font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400"
 		>
-			{game.awayTeam} @ {game.homeTeam}
-		</p>
-		<p class="text-sm text-neutral-500 dark:text-neutral-400">
-			{game.date} • Final
-		</p>
-	</header>
-
-	<div class="px-6 py-4 overflow-x-auto">
-		<table class="w-full text-sm tabular-nums">
-			<thead>
-				<tr class="text-neutral-500 dark:text-neutral-400 text-xs">
-					<th class="text-left pr-3 font-semibold py-1"></th>
-					{
-						innings.map((i) => (
-							<th
-								class="px-2 py-1 font-semibold text-center transition-colors"
-								data-inning-col={i}
-							>
-								{i}
-							</th>
-						))
-					}
-					<th
-						class="pl-3 pr-2 py-1 font-bold text-center border-l border-neutral-200 dark:border-neutral-800"
-					>
-						R
-					</th>
-					<th class="px-2 py-1 font-semibold text-center">H</th>
-					<th class="px-2 py-1 font-semibold text-center">E</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr
-					data-team="away"
-					class="text-neutral-900 dark:text-neutral-100 transition-colors"
+			<span id="play-half-inning">Top 1st</span>
+		</div>
+		<div class="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+			<div class="text-right">
+				<span
+					data-batting-dot="away"
+					class="inline-block w-2 h-2 rounded-full mr-2 align-middle opacity-0 transition-opacity"
+					style="background-color: #14b8a6;"
+				></span>
+				<span class="font-semibold text-neutral-900 dark:text-neutral-100"
+					>{game.awayTeam}</span
 				>
-					<td class="text-left pr-3 font-semibold py-1.5">
-						{game.awayShort}
-					</td>
-					{
-						innings.map((i) => (
-							<td
-								class="px-2 py-1.5 text-center"
-								data-inning-cell={`away-${i}`}
-							>
-								-
-							</td>
-						))
-					}
-					<td
-						class="pl-3 pr-2 py-1.5 text-center font-bold border-l border-neutral-200 dark:border-neutral-800"
-						data-total="away-R"
-					>
-						0
-					</td>
-					<td class="px-2 py-1.5 text-center">{game.totals.away.H}</td>
-					<td class="px-2 py-1.5 text-center">{game.totals.away.E}</td>
-				</tr>
-				<tr
-					data-team="home"
-					class="text-neutral-900 dark:text-neutral-100 transition-colors"
+			</div>
+			<div class="flex items-baseline gap-3">
+				<span
+					id="score-away"
+					class="text-4xl font-bold tabular-nums text-neutral-900 dark:text-neutral-100"
+					>0</span
 				>
-					<td class="text-left pr-3 font-semibold py-1.5">
-						{game.homeShort}
-					</td>
-					{
-						innings.map((i) => (
-							<td
-								class="px-2 py-1.5 text-center"
-								data-inning-cell={`home-${i}`}
-							>
-								-
-							</td>
-						))
-					}
-					<td
-						class="pl-3 pr-2 py-1.5 text-center font-bold border-l border-neutral-200 dark:border-neutral-800"
-						data-total="home-R"
-					>
-						0
-					</td>
-					<td class="px-2 py-1.5 text-center">{game.totals.home.H}</td>
-					<td class="px-2 py-1.5 text-center">{game.totals.home.E}</td>
-				</tr>
-			</tbody>
-		</table>
-	</div>
-
-	<div class="grid md:grid-cols-2 gap-6 px-6 pb-4">
-		<div class="flex flex-col items-center">
-			<svg
-				viewBox="0 0 200 200"
-				xmlns="http://www.w3.org/2000/svg"
-				class="w-full max-w-[280px]"
-				aria-label="Baseball diamond showing current base runners"
-			>
-				<rect
-					width="200"
-					height="200"
-					class="fill-green-200 dark:fill-emerald-950"
-				></rect>
-				<line
-					x1="100"
-					y1="170"
-					x2="195"
-					y2="75"
-					stroke-width="0.8"
-					class="stroke-white/70 dark:stroke-white/30"></line>
-				<line
-					x1="100"
-					y1="170"
-					x2="5"
-					y2="75"
-					stroke-width="0.8"
-					class="stroke-white/70 dark:stroke-white/30"></line>
-				<polygon
-					points="100,170 165,105 100,40 35,105"
-					class="fill-amber-300 dark:fill-amber-900"></polygon>
-				<polygon
-					points="100,150 145,105 100,60 55,105"
-					class="fill-green-200 dark:fill-emerald-950"></polygon>
-				<circle
-					cx="100"
-					cy="105"
-					r="7"
-					stroke-width="0.5"
-					class="fill-amber-300 dark:fill-amber-900 stroke-white/70 dark:stroke-white/30"
-				></circle>
-				<polygon
-					points="100,162 107,170 100,178 93,170"
-					stroke-width="0.6"
-					class="fill-white stroke-neutral-500"></polygon>
-				<polygon
-					data-base="1"
-					points="160,97 167,105 160,113 153,105"
-					stroke-width="0.6"
-					class="fill-white stroke-neutral-500"></polygon>
-				<polygon
-					data-base="2"
-					points="100,32 107,40 100,48 93,40"
-					stroke-width="0.6"
-					class="fill-white stroke-neutral-500"></polygon>
-				<polygon
-					data-base="3"
-					points="40,97 47,105 40,113 33,105"
-					stroke-width="0.6"
-					class="fill-white stroke-neutral-500"></polygon>
-				<circle
-					data-runner="1"
-					cx="160"
-					cy="105"
-					r="7"
-					opacity="0"
-					class="fill-pink-500 transition-opacity duration-300"></circle>
-				<circle
-					data-runner="2"
-					cx="100"
-					cy="40"
-					r="7"
-					opacity="0"
-					class="fill-pink-500 transition-opacity duration-300"></circle>
-				<circle
-					data-runner="3"
-					cx="40"
-					cy="105"
-					r="7"
-					opacity="0"
-					class="fill-pink-500 transition-opacity duration-300"></circle>
-			</svg>
-			<div class="mt-3 flex items-center gap-2 text-xs">
-				<span class="text-neutral-500 dark:text-neutral-400 font-semibold"
-					>OUTS</span
+				<span class="text-neutral-300 dark:text-neutral-700">—</span>
+				<span
+					id="score-home"
+					class="text-4xl font-bold tabular-nums text-neutral-900 dark:text-neutral-100"
+					>0</span
 				>
-				<span class="flex gap-1.5">
-					<span
-						data-out="1"
-						class="inline-block w-3 h-3 rounded-full border border-neutral-400 dark:border-neutral-600 transition-colors"
-					></span>
-					<span
-						data-out="2"
-						class="inline-block w-3 h-3 rounded-full border border-neutral-400 dark:border-neutral-600 transition-colors"
-					></span>
-					<span
-						data-out="3"
-						class="inline-block w-3 h-3 rounded-full border border-neutral-400 dark:border-neutral-600 transition-colors"
-					></span>
-				</span>
+			</div>
+			<div class="text-left">
+				<span class="font-semibold text-neutral-900 dark:text-neutral-100"
+					>{game.homeTeam}</span
+				>
+				<span
+					data-batting-dot="home"
+					class="inline-block w-2 h-2 rounded-full ml-2 align-middle opacity-0 transition-opacity"
+					style="background-color: #ec4899;"
+				></span>
 			</div>
 		</div>
-
-		<div class="flex flex-col justify-center min-w-0">
-			<p
-				id="play-inning"
-				class="text-xs font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400"
-			>
-			</p>
-			<p
-				id="play-batter"
-				class="mt-1 text-xl font-bold text-neutral-900 dark:text-neutral-100"
-			>
-			</p>
-			<p
-				id="play-result"
-				class="text-sm font-semibold text-pink-600 dark:text-pink-400"
-			>
-			</p>
-			<p
-				id="play-summary"
-				class="mt-3 text-sm md:text-base text-neutral-700 dark:text-neutral-300 leading-relaxed"
-			>
-			</p>
-		</div>
-	</div>
+	</header>
 
 	<div
-		class="px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 flex flex-wrap items-center gap-2"
+		class="px-6 py-3 border-b border-neutral-200 dark:border-neutral-800 flex flex-wrap items-center gap-2"
 	>
 		<button
 			id="play-prev"
@@ -304,6 +335,434 @@ const innings = Array.from({ length: game.innings }, (_, i) => i + 1)
 		>
 		</span>
 	</div>
+
+	<div
+		role="tablist"
+		class="px-6 flex gap-2 border-b border-neutral-200 dark:border-neutral-800"
+	>
+		<button
+			type="button"
+			role="tab"
+			data-tab="replay"
+			aria-selected="true"
+			class="tab-btn px-3 py-3 text-sm font-semibold border-b-2 border-pink-500 text-pink-600 dark:text-pink-400"
+		>
+			Replay
+		</button>
+		<button
+			type="button"
+			role="tab"
+			data-tab="boxscore"
+			aria-selected="false"
+			class="tab-btn px-3 py-3 text-sm font-semibold border-b-2 border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
+		>
+			Box Score
+		</button>
+	</div>
+
+	{/* Replay panel */}
+	<div data-panel="replay">
+		<div class="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+			<div
+				class="rounded-lg bg-neutral-50 dark:bg-neutral-800 px-4 py-3"
+			>
+				<p
+					class="text-[10px] font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400"
+				>
+					Pitching (<span id="pitching-team">{game.homeTeam}</span>)
+				</p>
+				<p
+					id="pitcher-name"
+					class="mt-0.5 text-lg font-semibold text-neutral-900 dark:text-neutral-100"
+				>
+				</p>
+			</div>
+			<div
+				class="rounded-lg bg-neutral-50 dark:bg-neutral-800 px-4 py-3"
+			>
+				<p
+					class="text-[10px] font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400"
+				>
+					Batting (<span id="batting-team">{game.awayTeam}</span>)
+				</p>
+				<p
+					id="batter-name"
+					class="mt-0.5 text-lg font-semibold text-neutral-900 dark:text-neutral-100"
+				>
+				</p>
+			</div>
+		</div>
+
+		<div class="px-6 pb-4 flex flex-col items-center">
+			<div class="relative w-full max-w-[300px]">
+				<svg
+					viewBox="0 0 200 200"
+					xmlns="http://www.w3.org/2000/svg"
+					class="w-full block"
+					aria-label="Baseball diamond showing current base runners"
+				>
+					<rect
+						width="200"
+						height="200"
+						class="fill-green-200 dark:fill-emerald-950"></rect>
+					<line
+						x1="100"
+						y1="170"
+						x2="195"
+						y2="75"
+						stroke-width="0.8"
+						class="stroke-white/70 dark:stroke-white/30"></line>
+					<line
+						x1="100"
+						y1="170"
+						x2="5"
+						y2="75"
+						stroke-width="0.8"
+						class="stroke-white/70 dark:stroke-white/30"></line>
+					<polygon
+						points="100,170 165,105 100,40 35,105"
+						class="fill-amber-300 dark:fill-amber-900"></polygon>
+					<polygon
+						points="100,150 145,105 100,60 55,105"
+						class="fill-green-200 dark:fill-emerald-950"></polygon>
+					<circle
+						cx="100"
+						cy="105"
+						r="9"
+						stroke-width="0.5"
+						class="fill-amber-300 dark:fill-amber-900 stroke-white/70 dark:stroke-white/30"
+					></circle>
+					<polygon
+						points="100,162 107,170 100,178 93,170"
+						stroke-width="0.6"
+						class="fill-white stroke-neutral-500"></polygon>
+					<polygon
+						data-base="1"
+						points="160,97 167,105 160,113 153,105"
+						stroke-width="0.6"
+						class="fill-white stroke-neutral-500"></polygon>
+					<polygon
+						data-base="2"
+						points="100,32 107,40 100,48 93,40"
+						stroke-width="0.6"
+						class="fill-white stroke-neutral-500"></polygon>
+					<polygon
+						data-base="3"
+						points="40,97 47,105 40,113 33,105"
+						stroke-width="0.6"
+						class="fill-white stroke-neutral-500"></polygon>
+					<circle
+						data-runner="1"
+						cx="160"
+						cy="105"
+						r="7"
+						opacity="0"
+						fill="#ec4899"
+						class="transition-opacity duration-300"></circle>
+					<circle
+						data-runner="2"
+						cx="100"
+						cy="40"
+						r="7"
+						opacity="0"
+						fill="#ec4899"
+						class="transition-opacity duration-300"></circle>
+					<circle
+						data-runner="3"
+						cx="40"
+						cy="105"
+						r="7"
+						opacity="0"
+						fill="#ec4899"
+						class="transition-opacity duration-300"></circle>
+				</svg>
+				<div
+					id="pitcher-pill"
+					class="absolute left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-neutral-900/90 dark:bg-neutral-100/90 text-white dark:text-neutral-900 text-[10px] font-semibold whitespace-nowrap shadow-md"
+					style="top: 60%;"
+				>
+				</div>
+				<div
+					id="batter-pill"
+					class="absolute left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-white text-[10px] font-semibold whitespace-nowrap shadow-md"
+					style="top: 91%; background-color: #ec4899;"
+				>
+				</div>
+			</div>
+			<div class="mt-3 flex items-center gap-2 text-xs">
+				<span
+					class="text-neutral-500 dark:text-neutral-400 font-semibold"
+					>OUTS</span
+				>
+				<span class="flex gap-1.5">
+					<span
+						data-out="1"
+						class="inline-block w-3 h-3 rounded-full border border-neutral-400 dark:border-neutral-600 transition-colors"
+					></span>
+					<span
+						data-out="2"
+						class="inline-block w-3 h-3 rounded-full border border-neutral-400 dark:border-neutral-600 transition-colors"
+					></span>
+					<span
+						data-out="3"
+						class="inline-block w-3 h-3 rounded-full border border-neutral-400 dark:border-neutral-600 transition-colors"
+					></span>
+				</span>
+			</div>
+		</div>
+
+		<div class="px-6 pb-4 text-center">
+			<p
+				id="play-result"
+				class="text-sm font-semibold uppercase tracking-widest text-pink-600 dark:text-pink-400"
+			>
+			</p>
+			<p
+				id="play-summary"
+				class="mt-1 text-sm md:text-base text-neutral-700 dark:text-neutral-300 leading-relaxed"
+			>
+			</p>
+		</div>
+
+		<div
+			class="px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 overflow-x-auto"
+		>
+			<table class="w-full text-sm tabular-nums">
+				<thead>
+					<tr class="text-neutral-500 dark:text-neutral-400 text-xs">
+						<th class="text-left pr-3 font-semibold py-1"></th>
+						{
+							innings.map((i) => (
+								<th
+									class="px-2 py-1 font-semibold text-center transition-colors"
+									data-inning-col={i}
+								>
+									{i}
+								</th>
+							))
+						}
+						<th
+							class="pl-3 pr-2 py-1 font-bold text-center border-l border-neutral-200 dark:border-neutral-800"
+							>R</th
+						>
+						<th class="px-2 py-1 font-semibold text-center">H</th>
+						<th class="px-2 py-1 font-semibold text-center">E</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr
+						data-team="away"
+						class="text-neutral-900 dark:text-neutral-100 transition-colors"
+					>
+						<td class="text-left pr-3 font-semibold py-1.5"
+							>{game.awayTeam}</td
+						>
+						{
+							innings.map((i) => (
+								<td
+									class="px-2 py-1.5 text-center"
+									data-inning-cell={`away-${i}`}
+								>
+									-
+								</td>
+							))
+						}
+						<td
+							class="pl-3 pr-2 py-1.5 text-center font-bold border-l border-neutral-200 dark:border-neutral-800"
+							data-total="away-R">0</td
+						>
+						<td class="px-2 py-1.5 text-center"
+							>{game.totals.away.H}</td
+						>
+						<td class="px-2 py-1.5 text-center"
+							>{game.totals.away.E}</td
+						>
+					</tr>
+					<tr
+						data-team="home"
+						class="text-neutral-900 dark:text-neutral-100 transition-colors"
+					>
+						<td class="text-left pr-3 font-semibold py-1.5"
+							>{game.homeTeam}</td
+						>
+						{
+							innings.map((i) => (
+								<td
+									class="px-2 py-1.5 text-center"
+									data-inning-cell={`home-${i}`}
+								>
+									-
+								</td>
+							))
+						}
+						<td
+							class="pl-3 pr-2 py-1.5 text-center font-bold border-l border-neutral-200 dark:border-neutral-800"
+							data-total="home-R">0</td
+						>
+						<td class="px-2 py-1.5 text-center"
+							>{game.totals.home.H}</td
+						>
+						<td class="px-2 py-1.5 text-center"
+							>{game.totals.home.E}</td
+						>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+
+		<div class="px-6 py-4 border-t border-neutral-200 dark:border-neutral-800">
+			<label for="player-search" class="sr-only">Find plays by player</label>
+			<div class="relative">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+					aria-hidden="true"
+				>
+					<circle cx="11" cy="11" r="8"></circle>
+					<line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+				</svg>
+				<input
+					id="player-search"
+					type="search"
+					placeholder="Find plays by player..."
+					autocomplete="off"
+					class="w-full pl-9 pr-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-pink-500/40 focus:border-pink-500"
+				/>
+				<ul
+					id="search-results"
+					class="hidden absolute left-0 right-0 bottom-full mb-1 max-h-72 overflow-y-auto rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg z-20"
+				>
+				</ul>
+			</div>
+		</div>
+	</div>
+
+	{/* Box Score panel */}
+	<div data-panel="boxscore" class="hidden">
+		{
+			[
+				{ team: game.awayTeam, batters: serpientesBatting, pitchers: serpientesPitching },
+				{ team: game.homeTeam, batters: flamingosBatting, pitchers: flamingosPitching },
+			].map(({ team, batters, pitchers }) => (
+				<div class="border-b border-neutral-200 dark:border-neutral-800 last:border-b-0">
+					<div class="px-6 py-3 bg-neutral-50 dark:bg-neutral-800/50">
+						<p class="text-xs font-semibold uppercase tracking-widest text-neutral-700 dark:text-neutral-200">
+							{team}
+						</p>
+					</div>
+					<div class="px-6 py-4 overflow-x-auto">
+						<table class="w-full text-sm tabular-nums">
+							<thead>
+								<tr class="text-xs text-neutral-500 dark:text-neutral-400">
+									<th class="text-left font-semibold pr-3 py-1">
+										Lineup
+									</th>
+									<th class="text-center font-semibold px-2 py-1">
+										AB
+									</th>
+									<th class="text-center font-semibold px-2 py-1">
+										R
+									</th>
+									<th class="text-center font-semibold px-2 py-1">
+										H
+									</th>
+									<th class="text-center font-semibold px-2 py-1">
+										RBI
+									</th>
+									<th class="text-center font-semibold px-2 py-1">
+										BB
+									</th>
+									<th class="text-center font-semibold px-2 py-1">
+										SO
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								{batters.lineup.map((b) => (
+									<tr class="border-t border-neutral-100 dark:border-neutral-800">
+										<td class="text-left py-1.5 pr-3 text-neutral-900 dark:text-neutral-100">
+											{b.name}
+										</td>
+										<td class="text-center px-2 py-1.5">{b.AB}</td>
+										<td class="text-center px-2 py-1.5">{b.R}</td>
+										<td class="text-center px-2 py-1.5">{b.H}</td>
+										<td class="text-center px-2 py-1.5">{b.RBI}</td>
+										<td class="text-center px-2 py-1.5">{b.BB}</td>
+										<td class="text-center px-2 py-1.5">{b.SO}</td>
+									</tr>
+								))}
+								<tr class="border-t border-neutral-200 dark:border-neutral-700 font-semibold">
+									<td class="text-left py-2 pr-3">TEAM</td>
+									<td class="text-center px-2 py-2">{batters.totals.AB}</td>
+									<td class="text-center px-2 py-2">{batters.totals.R}</td>
+									<td class="text-center px-2 py-2">{batters.totals.H}</td>
+									<td class="text-center px-2 py-2">{batters.totals.RBI}</td>
+									<td class="text-center px-2 py-2">{batters.totals.BB}</td>
+									<td class="text-center px-2 py-2">{batters.totals.SO}</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+					<div class="px-6 pb-5 overflow-x-auto">
+						<table class="w-full text-sm tabular-nums">
+							<thead>
+								<tr class="text-xs text-neutral-500 dark:text-neutral-400">
+									<th class="text-left font-semibold pr-3 py-1">
+										Pitching
+									</th>
+									<th class="text-center font-semibold px-2 py-1">
+										IP
+									</th>
+									<th class="text-center font-semibold px-2 py-1">
+										H
+									</th>
+									<th class="text-center font-semibold px-2 py-1">
+										R
+									</th>
+									<th class="text-center font-semibold px-2 py-1">
+										BB
+									</th>
+									<th class="text-center font-semibold px-2 py-1">
+										SO
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								{pitchers.pitchers.map((p) => (
+									<tr class="border-t border-neutral-100 dark:border-neutral-800">
+										<td class="text-left py-1.5 pr-3 text-neutral-900 dark:text-neutral-100">
+											{p.name}
+										</td>
+										<td class="text-center px-2 py-1.5">{formatIP(p.outs)}</td>
+										<td class="text-center px-2 py-1.5">{p.H}</td>
+										<td class="text-center px-2 py-1.5">{p.R}</td>
+										<td class="text-center px-2 py-1.5">{p.BB}</td>
+										<td class="text-center px-2 py-1.5">{p.SO}</td>
+									</tr>
+								))}
+								<tr class="border-t border-neutral-200 dark:border-neutral-700 font-semibold">
+									<td class="text-left py-2 pr-3">TEAM</td>
+									<td class="text-center px-2 py-2">{formatIP(pitchers.totals.outs)}</td>
+									<td class="text-center px-2 py-2">{pitchers.totals.H}</td>
+									<td class="text-center px-2 py-2">{pitchers.totals.R}</td>
+									<td class="text-center px-2 py-2">{pitchers.totals.BB}</td>
+									<td class="text-center px-2 py-2">{pitchers.totals.SO}</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			))
+		}
+	</div>
 </section>
 
 <script>
@@ -318,12 +777,18 @@ const innings = Array.from({ length: game.innings }, (_, i) => i + 1)
 		bases: [boolean, boolean, boolean]
 		away: number
 		home: number
+		scorers?: string[]
 	}
 
 	interface GameData {
 		innings: number
+		awayTeam: string
+		homeTeam: string
 		plays: Play[]
 	}
+
+	const FLM_COLOR = '#ec4899' // pink-500
+	const SRP_COLOR = '#14b8a6' // teal-500
 
 	const root = document.getElementById('game-replay') as HTMLElement
 	const game: GameData = JSON.parse(root.dataset.game!)
@@ -356,6 +821,21 @@ const innings = Array.from({ length: game.innings }, (_, i) => i + 1)
 	const ordinal = (n: number) =>
 		n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : `${n}th`
 
+	function pitcherFor(p: Play): string {
+		if (p.half === 'top') {
+			if (p.inning === 1) return 'Brady Dunn'
+			if (p.inning === 2)
+				return p.batter === 'Henry G' ? 'Corbin Levac' : 'Brady Dunn'
+			if (p.inning <= 5) return 'Corbin Levac'
+			return p.batter === 'Byron M' || p.batter === 'Henry G (at-bat)'
+				? 'Owen Lane'
+				: 'Corbin Levac'
+		}
+		if (p.inning <= 3) return 'Beckham H'
+		if (p.inning === 4) return 'Andrew M'
+		return 'Jackson C'
+	}
+
 	function computeLines(upTo: number) {
 		const away: (number | string)[] = Array(game.innings).fill('-')
 		const home: (number | string)[] = Array(game.innings).fill('-')
@@ -370,6 +850,34 @@ const innings = Array.from({ length: game.innings }, (_, i) => i + 1)
 
 	function render() {
 		const p = plays[idx]
+		const battingAway = p.half === 'top'
+		const teamColor = battingAway ? SRP_COLOR : FLM_COLOR
+
+		// Score bar
+		$('#score-away').textContent = String(p.away)
+		$('#score-home').textContent = String(p.home)
+		$('#play-half-inning').textContent =
+			`${battingAway ? 'Top' : 'Bottom'} ${ordinal(p.inning)}`
+		;($('[data-batting-dot="away"]') as HTMLElement).style.opacity =
+			battingAway ? '1' : '0'
+		;($('[data-batting-dot="home"]') as HTMLElement).style.opacity =
+			battingAway ? '0' : '1'
+
+		// Pitching / batting cards
+		const pitcher = pitcherFor(p)
+		$('#pitcher-name').textContent = pitcher
+		$('#batter-name').textContent = p.batter
+		$('#pitching-team').textContent = battingAway
+			? game.homeTeam
+			: game.awayTeam
+		$('#batting-team').textContent = battingAway
+			? game.awayTeam
+			: game.homeTeam
+
+		// Pills on the field
+		$('#pitcher-pill').textContent = pitcher
+		$('#batter-pill').textContent = p.batter
+		;($('#batter-pill') as HTMLElement).style.backgroundColor = teamColor
 
 		// Scoreboard cells
 		const lines = computeLines(idx)
@@ -382,37 +890,42 @@ const innings = Array.from({ length: game.innings }, (_, i) => i + 1)
 		$('[data-total="away-R"]').textContent = String(p.away)
 		$('[data-total="home-R"]').textContent = String(p.home)
 
-		// Highlight current inning column + active team row
+		// Highlight current inning column
 		root.querySelectorAll('[data-inning-col]').forEach((el) => {
 			const inn = Number((el as HTMLElement).dataset.inningCol)
 			const active = inn === p.inning
-			el.classList.toggle('text-pink-600', active)
-			el.classList.toggle('dark:text-pink-400', active)
+			el.classList.toggle('text-pink-600', active && !battingAway)
+			el.classList.toggle('dark:text-pink-400', active && !battingAway)
+			el.classList.toggle('text-teal-600', active && battingAway)
+			el.classList.toggle('dark:text-teal-400', active && battingAway)
 		})
+
+		// Highlight active team row in scoreboard
 		const awayRow = $('[data-team="away"]') as HTMLElement
 		const homeRow = $('[data-team="home"]') as HTMLElement
-		awayRow.classList.toggle('bg-pink-50', p.half === 'top')
-		awayRow.classList.toggle('dark:bg-pink-950/30', p.half === 'top')
-		homeRow.classList.toggle('bg-pink-50', p.half === 'bottom')
-		homeRow.classList.toggle('dark:bg-pink-950/30', p.half === 'bottom')
+		awayRow.classList.toggle('bg-teal-50', battingAway)
+		awayRow.classList.toggle('dark:bg-teal-950/30', battingAway)
+		homeRow.classList.toggle('bg-pink-50', !battingAway)
+		homeRow.classList.toggle('dark:bg-pink-950/30', !battingAway)
 
-		// Runners
+		// Runners — fill color matches batting team
 		for (let b = 1; b <= 3; b++) {
 			const runner = $(`[data-runner="${b}"]`) as SVGElement
-			if (runner) runner.setAttribute('opacity', p.bases[b - 1] ? '1' : '0')
+			if (runner) {
+				runner.setAttribute('opacity', p.bases[b - 1] ? '1' : '0')
+				runner.setAttribute('fill', teamColor)
+			}
 		}
 
-		// Outs
+		// Outs — color matches batting team
 		for (let o = 1; o <= 3; o++) {
 			const dot = $(`[data-out="${o}"]`) as HTMLElement
 			const filled = o <= p.outs
-			dot.classList.toggle('bg-pink-500', filled)
-			dot.classList.toggle('border-pink-500', filled)
+			dot.style.backgroundColor = filled ? teamColor : ''
+			dot.style.borderColor = filled ? teamColor : ''
 		}
 
-		// Play info
-		$('#play-inning').textContent = `${p.half === 'top' ? 'Top' : 'Bottom'} ${ordinal(p.inning)} • ${p.half === 'top' ? 'SRP' : 'FLM'} batting`
-		$('#play-batter').textContent = p.batter
+		// Play summary
 		$('#play-result').textContent = resultLabels[p.result] ?? p.result
 		$('#play-summary').textContent = p.summary
 		$('#play-counter').textContent = `Play ${idx + 1} of ${total}`
@@ -424,18 +937,18 @@ const innings = Array.from({ length: game.innings }, (_, i) => i + 1)
 		if (idx === total - 1 && playing) stop()
 	}
 
+	function jumpTo(i: number) {
+		if (i < 0 || i >= total) return
+		idx = i
+		render()
+	}
+
 	function next() {
-		if (idx < total - 1) {
-			idx++
-			render()
-		}
+		if (idx < total - 1) jumpTo(idx + 1)
 	}
 
 	function prev() {
-		if (idx > 0) {
-			idx--
-			render()
-		}
+		if (idx > 0) jumpTo(idx - 1)
 	}
 
 	function start() {
@@ -464,6 +977,109 @@ const innings = Array.from({ length: game.innings }, (_, i) => i + 1)
 		$('#pause-icon').classList.add('hidden')
 		;($('#play-toggle') as HTMLElement).setAttribute('aria-label', 'Play')
 	}
+
+	function escapeHtml(s: string): string {
+		const div = document.createElement('div')
+		div.textContent = s
+		return div.innerHTML
+	}
+
+	// --- Tabs ---
+	const tabs = Array.from(
+		root.querySelectorAll<HTMLElement>('[data-tab]')
+	)
+	const panels = Array.from(
+		root.querySelectorAll<HTMLElement>('[data-panel]')
+	)
+
+	function activateTab(name: string) {
+		tabs.forEach((t) => {
+			const active = t.dataset.tab === name
+			t.setAttribute('aria-selected', active ? 'true' : 'false')
+			t.classList.toggle('border-pink-500', active)
+			t.classList.toggle('border-transparent', !active)
+			t.classList.toggle('text-pink-600', active)
+			t.classList.toggle('dark:text-pink-400', active)
+			t.classList.toggle('text-neutral-500', !active)
+			t.classList.toggle('dark:text-neutral-400', !active)
+		})
+		panels.forEach((p) => {
+			p.classList.toggle('hidden', p.dataset.panel !== name)
+		})
+	}
+
+	tabs.forEach((t) => {
+		t.addEventListener('click', () => activateTab(t.dataset.tab!))
+	})
+
+	// --- Search ---
+	const searchInput = $('#player-search') as HTMLInputElement
+	const searchResults = $('#search-results') as HTMLElement
+
+	function runSearch() {
+		const q = searchInput.value.trim().toLowerCase()
+		if (q.length < 2) {
+			searchResults.classList.add('hidden')
+			searchResults.innerHTML = ''
+			return
+		}
+		const matches: { i: number; p: Play }[] = []
+		for (let i = 0; i < plays.length; i++) {
+			const p = plays[i]
+			const haystack =
+				`${p.batter} ${p.summary} ${pitcherFor(p)} ${(p.scorers ?? []).join(' ')}`.toLowerCase()
+			if (haystack.includes(q)) matches.push({ i, p })
+			if (matches.length >= 30) break
+		}
+		if (matches.length === 0) {
+			searchResults.innerHTML = `<li class="px-3 py-2 text-sm text-neutral-500 dark:text-neutral-400">No plays match &ldquo;${escapeHtml(q)}&rdquo;.</li>`
+		} else {
+			searchResults.innerHTML = matches
+				.map(({ i, p }) => {
+					const half = p.half === 'top' ? 'Top' : 'Bot'
+					const label = resultLabels[p.result] ?? p.result
+					return `<li>
+						<button type="button" data-jump-to="${i}" class="w-full text-left px-3 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors border-b border-neutral-100 dark:border-neutral-800 last:border-b-0">
+							<div class="flex items-center justify-between gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+								<span class="font-semibold">${escapeHtml(p.batter)}</span>
+								<span class="tabular-nums">${half} ${p.inning} • ${label}</span>
+							</div>
+							<p class="mt-0.5 text-sm text-neutral-700 dark:text-neutral-300 leading-snug">${escapeHtml(p.summary)}</p>
+						</button>
+					</li>`
+				})
+				.join('')
+		}
+		searchResults.classList.remove('hidden')
+	}
+
+	searchInput.addEventListener('input', runSearch)
+	searchInput.addEventListener('focus', () => {
+		if (searchInput.value.trim().length >= 2) runSearch()
+	})
+
+	searchResults.addEventListener('click', (e) => {
+		const btn = (e.target as HTMLElement).closest('[data-jump-to]')
+		if (!btn) return
+		const i = Number(btn.getAttribute('data-jump-to'))
+		stop()
+		activateTab('replay')
+		jumpTo(i)
+		searchResults.classList.add('hidden')
+		searchInput.value = ''
+		searchInput.blur()
+		root.scrollIntoView({ behavior: 'smooth', block: 'start' })
+	})
+
+	document.addEventListener('click', (e) => {
+		const target = e.target as HTMLElement
+		if (
+			!searchInput.contains(target) &&
+			!searchResults.contains(target)
+		) {
+			searchResults.classList.add('hidden')
+		}
+	})
 
 	$('#play-prev').addEventListener('click', () => {
 		stop()
