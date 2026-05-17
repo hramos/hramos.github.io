@@ -7,12 +7,12 @@
 	--font-sans: 'Inter Variable', sans-serif;
 	--font-mono: 'JetBrains Mono Variable', monospace;
 
-	--color-foreground: rgb(15, 23, 42);
-	--color-foreground-dark: rgb(248, 250, 252);
-	--color-background: rgb(248, 250, 252);
-	--color-background-dark: rgb(15, 23, 42);
-	--color-primary: rgb(71, 85, 105);
-	--color-primary-dark: rgb(203, 213, 225);
+	--color-foreground: rgb(12, 12, 12);
+	--color-foreground-dark: rgb(250, 250, 250);
+	--color-background: rgb(255, 255, 255);
+	--color-background-dark: rgb(43, 43, 43);
+	--color-primary: rgb(7, 132, 181);
+	--color-primary-dark: rgb(155, 212, 228);
 }
 
 html {
