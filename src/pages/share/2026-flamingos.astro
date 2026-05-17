@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
+import GameReplay from '../../components/GameReplay.astro'
 
 const youtubeId = '71FvzzR2uwE'
 const embedUrl = `https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0`
@@ -35,6 +36,10 @@ const embedUrl = `https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0`
 			></iframe>
 		</div>
 
+	</section>
+
+	<section class="app-container pb-6">
+		<GameReplay />
 	</section>
 
 	<section class="app-container pb-12">

@@ -1,0 +1,481 @@
+---
+import { game } from '../data/flamingos-game'
+
+const gameJson = JSON.stringify(game)
+const innings = Array.from({ length: game.innings }, (_, i) => i + 1)
+---
+
+<section
+	id="game-replay"
+	class="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden"
+	data-game={gameJson}
+>
+	<header
+		class="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800"
+	>
+		<p
+			class="text-xs font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400"
+		>
+			Play by Play
+		</p>
+		<p
+			class="mt-1 text-lg font-semibold text-neutral-900 dark:text-neutral-100"
+		>
+			{game.awayTeam} @ {game.homeTeam}
+		</p>
+		<p class="text-sm text-neutral-500 dark:text-neutral-400">
+			{game.date} • Final
+		</p>
+	</header>
+
+	<div class="px-6 py-4 overflow-x-auto">
+		<table class="w-full text-sm tabular-nums">
+			<thead>
+				<tr class="text-neutral-500 dark:text-neutral-400 text-xs">
+					<th class="text-left pr-3 font-semibold py-1"></th>
+					{
+						innings.map((i) => (
+							<th
+								class="px-2 py-1 font-semibold text-center transition-colors"
+								data-inning-col={i}
+							>
+								{i}
+							</th>
+						))
+					}
+					<th
+						class="pl-3 pr-2 py-1 font-bold text-center border-l border-neutral-200 dark:border-neutral-800"
+					>
+						R
+					</th>
+					<th class="px-2 py-1 font-semibold text-center">H</th>
+					<th class="px-2 py-1 font-semibold text-center">E</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr
+					data-team="away"
+					class="text-neutral-900 dark:text-neutral-100 transition-colors"
+				>
+					<td class="text-left pr-3 font-semibold py-1.5">
+						{game.awayShort}
+					</td>
+					{
+						innings.map((i) => (
+							<td
+								class="px-2 py-1.5 text-center"
+								data-inning-cell={`away-${i}`}
+							>
+								-
+							</td>
+						))
+					}
+					<td
+						class="pl-3 pr-2 py-1.5 text-center font-bold border-l border-neutral-200 dark:border-neutral-800"
+						data-total="away-R"
+					>
+						0
+					</td>
+					<td class="px-2 py-1.5 text-center">{game.totals.away.H}</td>
+					<td class="px-2 py-1.5 text-center">{game.totals.away.E}</td>
+				</tr>
+				<tr
+					data-team="home"
+					class="text-neutral-900 dark:text-neutral-100 transition-colors"
+				>
+					<td class="text-left pr-3 font-semibold py-1.5">
+						{game.homeShort}
+					</td>
+					{
+						innings.map((i) => (
+							<td
+								class="px-2 py-1.5 text-center"
+								data-inning-cell={`home-${i}`}
+							>
+								-
+							</td>
+						))
+					}
+					<td
+						class="pl-3 pr-2 py-1.5 text-center font-bold border-l border-neutral-200 dark:border-neutral-800"
+						data-total="home-R"
+					>
+						0
+					</td>
+					<td class="px-2 py-1.5 text-center">{game.totals.home.H}</td>
+					<td class="px-2 py-1.5 text-center">{game.totals.home.E}</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+
+	<div class="grid md:grid-cols-2 gap-6 px-6 pb-4">
+		<div class="flex flex-col items-center">
+			<svg
+				viewBox="0 0 200 200"
+				xmlns="http://www.w3.org/2000/svg"
+				class="w-full max-w-[280px]"
+				aria-label="Baseball diamond showing current base runners"
+			>
+				<rect
+					width="200"
+					height="200"
+					class="fill-green-200 dark:fill-emerald-950"
+				></rect>
+				<line
+					x1="100"
+					y1="170"
+					x2="195"
+					y2="75"
+					stroke-width="0.8"
+					class="stroke-white/70 dark:stroke-white/30"></line>
+				<line
+					x1="100"
+					y1="170"
+					x2="5"
+					y2="75"
+					stroke-width="0.8"
+					class="stroke-white/70 dark:stroke-white/30"></line>
+				<polygon
+					points="100,170 165,105 100,40 35,105"
+					class="fill-amber-300 dark:fill-amber-900"></polygon>
+				<polygon
+					points="100,150 145,105 100,60 55,105"
+					class="fill-green-200 dark:fill-emerald-950"></polygon>
+				<circle
+					cx="100"
+					cy="105"
+					r="7"
+					stroke-width="0.5"
+					class="fill-amber-300 dark:fill-amber-900 stroke-white/70 dark:stroke-white/30"
+				></circle>
+				<polygon
+					points="100,162 107,170 100,178 93,170"
+					stroke-width="0.6"
+					class="fill-white stroke-neutral-500"></polygon>
+				<polygon
+					data-base="1"
+					points="160,97 167,105 160,113 153,105"
+					stroke-width="0.6"
+					class="fill-white stroke-neutral-500"></polygon>
+				<polygon
+					data-base="2"
+					points="100,32 107,40 100,48 93,40"
+					stroke-width="0.6"
+					class="fill-white stroke-neutral-500"></polygon>
+				<polygon
+					data-base="3"
+					points="40,97 47,105 40,113 33,105"
+					stroke-width="0.6"
+					class="fill-white stroke-neutral-500"></polygon>
+				<circle
+					data-runner="1"
+					cx="160"
+					cy="105"
+					r="7"
+					opacity="0"
+					class="fill-pink-500 transition-opacity duration-300"></circle>
+				<circle
+					data-runner="2"
+					cx="100"
+					cy="40"
+					r="7"
+					opacity="0"
+					class="fill-pink-500 transition-opacity duration-300"></circle>
+				<circle
+					data-runner="3"
+					cx="40"
+					cy="105"
+					r="7"
+					opacity="0"
+					class="fill-pink-500 transition-opacity duration-300"></circle>
+			</svg>
+			<div class="mt-3 flex items-center gap-2 text-xs">
+				<span class="text-neutral-500 dark:text-neutral-400 font-semibold"
+					>OUTS</span
+				>
+				<span class="flex gap-1.5">
+					<span
+						data-out="1"
+						class="inline-block w-3 h-3 rounded-full border border-neutral-400 dark:border-neutral-600 transition-colors"
+					></span>
+					<span
+						data-out="2"
+						class="inline-block w-3 h-3 rounded-full border border-neutral-400 dark:border-neutral-600 transition-colors"
+					></span>
+					<span
+						data-out="3"
+						class="inline-block w-3 h-3 rounded-full border border-neutral-400 dark:border-neutral-600 transition-colors"
+					></span>
+				</span>
+			</div>
+		</div>
+
+		<div class="flex flex-col justify-center min-w-0">
+			<p
+				id="play-inning"
+				class="text-xs font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400"
+			>
+			</p>
+			<p
+				id="play-batter"
+				class="mt-1 text-xl font-bold text-neutral-900 dark:text-neutral-100"
+			>
+			</p>
+			<p
+				id="play-result"
+				class="text-sm font-semibold text-pink-600 dark:text-pink-400"
+			>
+			</p>
+			<p
+				id="play-summary"
+				class="mt-3 text-sm md:text-base text-neutral-700 dark:text-neutral-300 leading-relaxed"
+			>
+			</p>
+		</div>
+	</div>
+
+	<div
+		class="px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 flex flex-wrap items-center gap-2"
+	>
+		<button
+			id="play-prev"
+			type="button"
+			aria-label="Previous play"
+			class="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+		>
+			<svg
+				width="18"
+				height="18"
+				viewBox="0 0 24 24"
+				fill="currentColor"
+				aria-hidden="true"
+			>
+				<path d="M6 6h2v12H6zM9.5 12l8.5 6V6z"></path>
+			</svg>
+		</button>
+		<button
+			id="play-toggle"
+			type="button"
+			aria-label="Play"
+			class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:opacity-80 transition-opacity"
+		>
+			<svg
+				id="play-icon"
+				width="18"
+				height="18"
+				viewBox="0 0 24 24"
+				fill="currentColor"
+				aria-hidden="true"
+			>
+				<path d="M8 5v14l11-7z"></path>
+			</svg>
+			<svg
+				id="pause-icon"
+				width="18"
+				height="18"
+				viewBox="0 0 24 24"
+				fill="currentColor"
+				aria-hidden="true"
+				class="hidden"
+			>
+				<path d="M6 5h4v14H6zM14 5h4v14h-4z"></path>
+			</svg>
+		</button>
+		<button
+			id="play-next"
+			type="button"
+			aria-label="Next play"
+			class="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+		>
+			<svg
+				width="18"
+				height="18"
+				viewBox="0 0 24 24"
+				fill="currentColor"
+				aria-hidden="true"
+			>
+				<path d="M6 18l8.5-6L6 6zM16 6h2v12h-2z"></path>
+			</svg>
+		</button>
+		<span
+			id="play-counter"
+			class="ml-2 text-sm tabular-nums text-neutral-500 dark:text-neutral-400"
+		>
+		</span>
+	</div>
+</section>
+
+<script>
+	interface Play {
+		inning: number
+		half: 'top' | 'bottom'
+		batter: string
+		result: string
+		summary: string
+		outs: number
+		runs: number
+		bases: [boolean, boolean, boolean]
+		away: number
+		home: number
+	}
+
+	interface GameData {
+		innings: number
+		plays: Play[]
+	}
+
+	const root = document.getElementById('game-replay') as HTMLElement
+	const game: GameData = JSON.parse(root.dataset.game!)
+	const plays = game.plays
+	const total = plays.length
+
+	let idx = 0
+	let playing = false
+	let timer: number | null = null
+	const TICK_MS = 2500
+
+	const $ = <T extends Element = Element>(sel: string) =>
+		root.querySelector(sel) as T
+
+	const resultLabels: Record<string, string> = {
+		walk: 'Walk',
+		single: 'Single',
+		double: 'Double',
+		triple: 'Triple',
+		home_run: 'Home Run',
+		strikeout: 'Strikeout',
+		groundout: 'Ground Out',
+		flyout: 'Fly Out',
+		popout: 'Pop Out',
+		doubleplay: 'Double Play',
+		caught_stealing: 'Caught Stealing',
+		inning_ended: 'Inning Ended',
+	}
+
+	const ordinal = (n: number) =>
+		n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : `${n}th`
+
+	function computeLines(upTo: number) {
+		const away: (number | string)[] = Array(game.innings).fill('-')
+		const home: (number | string)[] = Array(game.innings).fill('-')
+		for (let i = 0; i <= upTo; i++) {
+			const p = plays[i]
+			const arr = p.half === 'top' ? away : home
+			const cell = arr[p.inning - 1]
+			arr[p.inning - 1] = (typeof cell === 'number' ? cell : 0) + p.runs
+		}
+		return { away, home }
+	}
+
+	function render() {
+		const p = plays[idx]
+
+		// Scoreboard cells
+		const lines = computeLines(idx)
+		for (let i = 1; i <= game.innings; i++) {
+			const aCell = $(`[data-inning-cell="away-${i}"]`)
+			const hCell = $(`[data-inning-cell="home-${i}"]`)
+			if (aCell) aCell.textContent = String(lines.away[i - 1])
+			if (hCell) hCell.textContent = String(lines.home[i - 1])
+		}
+		$('[data-total="away-R"]').textContent = String(p.away)
+		$('[data-total="home-R"]').textContent = String(p.home)
+
+		// Highlight current inning column + active team row
+		root.querySelectorAll('[data-inning-col]').forEach((el) => {
+			const inn = Number((el as HTMLElement).dataset.inningCol)
+			const active = inn === p.inning
+			el.classList.toggle('text-pink-600', active)
+			el.classList.toggle('dark:text-pink-400', active)
+		})
+		const awayRow = $('[data-team="away"]') as HTMLElement
+		const homeRow = $('[data-team="home"]') as HTMLElement
+		awayRow.classList.toggle('bg-pink-50', p.half === 'top')
+		awayRow.classList.toggle('dark:bg-pink-950/30', p.half === 'top')
+		homeRow.classList.toggle('bg-pink-50', p.half === 'bottom')
+		homeRow.classList.toggle('dark:bg-pink-950/30', p.half === 'bottom')
+
+		// Runners
+		for (let b = 1; b <= 3; b++) {
+			const runner = $(`[data-runner="${b}"]`) as SVGElement
+			if (runner) runner.setAttribute('opacity', p.bases[b - 1] ? '1' : '0')
+		}
+
+		// Outs
+		for (let o = 1; o <= 3; o++) {
+			const dot = $(`[data-out="${o}"]`) as HTMLElement
+			const filled = o <= p.outs
+			dot.classList.toggle('bg-pink-500', filled)
+			dot.classList.toggle('border-pink-500', filled)
+		}
+
+		// Play info
+		$('#play-inning').textContent = `${p.half === 'top' ? 'Top' : 'Bottom'} ${ordinal(p.inning)} • ${p.half === 'top' ? 'SRP' : 'FLM'} batting`
+		$('#play-batter').textContent = p.batter
+		$('#play-result').textContent = resultLabels[p.result] ?? p.result
+		$('#play-summary').textContent = p.summary
+		$('#play-counter').textContent = `Play ${idx + 1} of ${total}`
+
+		// Controls
+		;($('#play-prev') as HTMLButtonElement).disabled = idx === 0
+		;($('#play-next') as HTMLButtonElement).disabled = idx === total - 1
+
+		if (idx === total - 1 && playing) stop()
+	}
+
+	function next() {
+		if (idx < total - 1) {
+			idx++
+			render()
+		}
+	}
+
+	function prev() {
+		if (idx > 0) {
+			idx--
+			render()
+		}
+	}
+
+	function start() {
+		if (playing) return
+		playing = true
+		$('#play-icon').classList.add('hidden')
+		$('#pause-icon').classList.remove('hidden')
+		;($('#play-toggle') as HTMLElement).setAttribute('aria-label', 'Pause')
+		timer = window.setInterval(() => {
+			if (idx < total - 1) {
+				idx++
+				render()
+			} else {
+				stop()
+			}
+		}, TICK_MS)
+	}
+
+	function stop() {
+		playing = false
+		if (timer != null) {
+			window.clearInterval(timer)
+			timer = null
+		}
+		$('#play-icon').classList.remove('hidden')
+		$('#pause-icon').classList.add('hidden')
+		;($('#play-toggle') as HTMLElement).setAttribute('aria-label', 'Play')
+	}
+
+	$('#play-prev').addEventListener('click', () => {
+		stop()
+		prev()
+	})
+	$('#play-next').addEventListener('click', () => {
+		stop()
+		next()
+	})
+	$('#play-toggle').addEventListener('click', () => {
+		playing ? stop() : start()
+	})
+
+	render()
+</script>
