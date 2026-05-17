@@ -2,7 +2,6 @@
 import BaseLayout from '../../layouts/BaseLayout.astro'
 
 const youtubeId = '71FvzzR2uwE'
-const youtubeUrl = `https://youtu.be/${youtubeId}`
 const embedUrl = `https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0`
 ---
 
@@ -12,7 +11,7 @@ const embedUrl = `https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0`
 	image="/flamingos-2026-og.jpg"
 	hideFooter
 >
-	<main class="app-container pt-36">
+	<main class="app-container pt-24">
 		<h1 class="text-6xl pb-2 font-bold">Flamingos</h1>
 		<p class="text-lg text-neutral-600 dark:text-neutral-400">
 			Spring 2026 Championship Game
@@ -35,33 +34,6 @@ const embedUrl = `https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0`
 			></iframe>
 		</div>
 
-		<div class="mt-6 flex flex-wrap items-center gap-4">
-			<a
-				href={youtubeUrl}
-				target="_blank"
-				rel="noopener noreferrer"
-				class="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-neutral-900 text-white hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200 transition-colors font-medium"
-			>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="20"
-					height="20"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					aria-hidden="true"
-				>
-					<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
-					></path>
-					<polyline points="15 3 21 3 21 9"></polyline>
-					<line x1="10" y1="14" x2="21" y2="3"></line>
-				</svg>
-				Open on YouTube
-			</a>
-		</div>
 	</section>
 
 	<section class="app-container pb-12">
@@ -113,7 +85,7 @@ const embedUrl = `https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0`
 						task you can open from any device.
 					</p>
 				</div>
-				<div class="flex flex-wrap items-center gap-3">
+				<div class="flex flex-col items-center gap-2">
 					<a
 						href="https://wallfacer.ai"
 						target="_blank"
@@ -122,19 +94,15 @@ const embedUrl = `https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0`
 					>
 						Learn more
 					</a>
+					<a
+						href="https://wallfacer.ai"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
+					>
+						https://wallfacer.ai
+					</a>
 				</div>
-			</div>
-			<div
-				class="mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-800"
-			>
-				<a
-					href="https://wallfacer.ai"
-					target="_blank"
-					rel="noopener noreferrer"
-					class="text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
-				>
-					https://wallfacer.ai
-				</a>
 			</div>
 		</div>
 	</section>
