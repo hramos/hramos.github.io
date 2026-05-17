@@ -1,6 +1,15 @@
 ---
 import { game, type Play } from '../data/flamingos-game'
 
+interface Props {
+	youtubeId?: string
+	downloadUrl?: string
+	downloadFilename?: string
+}
+
+const { youtubeId, downloadUrl, downloadFilename } = Astro.props
+const embedUrl = youtubeId ? `https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0` : undefined
+
 const gameJson = JSON.stringify(game)
 const innings = Array.from({ length: game.innings }, (_, i) => i + 1)
 
