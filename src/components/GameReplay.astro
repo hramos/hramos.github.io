@@ -380,8 +380,89 @@ const flamingosPitching = computePitchers('top') // FLM pitches when SRP bats
 		</button>
 	</div>
 
+	{/* Video panel */}
+	{embedUrl && (
+		<div data-panel="video">
+			<div class="px-4 sm:px-6 py-6">
+				<div
+					class="relative w-full rounded-xl overflow-hidden bg-black shadow-lg"
+					style="aspect-ratio: 16 / 9;"
+				>
+					<iframe
+						class="absolute inset-0 w-full h-full"
+						src={embedUrl}
+						title="Game Video"
+						frameborder="0"
+						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+						referrerpolicy="strict-origin-when-cross-origin"
+						allowfullscreen
+					></iframe>
+				</div>
+
+				{downloadUrl && downloadFilename && (
+					<div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+						<a
+							href={downloadUrl}
+							download={downloadFilename}
+							class="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-neutral-900 text-white hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200 transition-colors font-medium"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="20"
+								height="20"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+								<polyline points="7 10 12 15 17 10"></polyline>
+								<line x1="12" y1="15" x2="12" y2="3"></line>
+							</svg>
+							Download 68.9 GB video
+						</a>
+						<span class="relative inline-flex group">
+							<button
+								type="button"
+								aria-label="Download size warning"
+								title="This is a large video. Stream on YouTube above unless you really need the full-size original."
+								class="inline-flex items-center justify-center w-7 h-7 rounded-full border border-neutral-300 dark:border-neutral-700 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-500 transition-colors"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="14"
+									height="14"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+								>
+									<circle cx="12" cy="12" r="10"></circle>
+									<line x1="12" y1="16" x2="12" y2="12"></line>
+									<line x1="12" y1="8" x2="12.01" y2="8"></line>
+								</svg>
+							</button>
+							<span
+								role="tooltip"
+								class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 px-3 py-2 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-xs leading-snug shadow-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-10"
+							>
+								This is a large video. Stream on YouTube above unless you really need the full-size original.
+							</span>
+						</span>
+					</div>
+				)}
+			</div>
+		</div>
+	)}
+
 	{/* Replay panel */}
-	<div data-panel="replay">
+	<div data-panel="replay" class="hidden">
 		<div class="px-4 sm:px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
 			<div
 				class="rounded-lg bg-neutral-50 dark:bg-neutral-800 px-4 py-3"
