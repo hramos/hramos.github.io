@@ -1158,6 +1158,12 @@ const flamingosPitching = computePitchers('top') // FLM pitches when SRP bats
 		t.addEventListener('click', () => activateTab(t.dataset.tab!))
 	})
 
+	// Set initial tab
+	const initialTab = tabs.find(t => t.getAttribute('aria-selected') === 'true')
+	if (initialTab) {
+		activateTab(initialTab.dataset.tab!)
+	}
+
 	// --- Search ---
 	const searchInput = $('#player-search') as HTMLInputElement
 	const searchResults = $('#search-results') as HTMLElement
