@@ -7,12 +7,12 @@
 	--font-sans: 'Inter Variable', sans-serif;
 	--font-mono: 'JetBrains Mono Variable', monospace;
 
-	--color-foreground: #0c0c0c;
-	--color-foreground-dark: #fafafa;
-	--color-background: #ffffff;
-	--color-background-dark: #2b2b2b;
-	--color-primary: #0784b5;
-	--color-primary-dark: #9bd4e4;
+	--color-foreground: #0f172a;
+	--color-foreground-dark: #f1f5f9;
+	--color-background: #f8fafc;
+	--color-background-dark: #1e293b;
+	--color-primary: #475569;
+	--color-primary-dark: #cbd5e1;
 }
 
 html {
