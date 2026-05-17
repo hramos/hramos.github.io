@@ -8,10 +8,17 @@ interface Props {
 	title?: string
 	description?: string
 	image?: string
+	ogTitle?: string
 	hideFooter?: boolean
 }
 
-const { title, description, image, hideFooter = false } = Astro.props
+const {
+	title,
+	description,
+	image,
+	ogTitle,
+	hideFooter = false,
+} = Astro.props
 
 import '@fontsource-variable/inter'
 import '@fontsource-variable/jetbrains-mono'
@@ -24,6 +31,7 @@ import '@fontsource-variable/jetbrains-mono'
 			title={title || SITE_TITLE}
 			description={description || SITE_DESCRIPTION}
 			image={image}
+			ogTitle={ogTitle}
 		/>
 	</head>
 	<body
