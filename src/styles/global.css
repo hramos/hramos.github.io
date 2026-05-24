@@ -48,3 +48,181 @@ html {
 .prose iframe {
 	@apply my-16 mx-auto w-11/12 aspect-video rounded-xl;
 }
+
+/* 🌈 Rainbow chaos mode 🌈 */
+@keyframes rainbow-shift {
+	0% { background-position: 0% 50%; }
+	50% { background-position: 100% 50%; }
+	100% { background-position: 0% 50%; }
+}
+
+@keyframes rainbow-hue {
+	0% { filter: hue-rotate(0deg); }
+	100% { filter: hue-rotate(360deg); }
+}
+
+@keyframes rainbow-spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
+
+.rainbow-text {
+	background: linear-gradient(
+		90deg,
+		#ff0000,
+		#ff8800,
+		#ffee00,
+		#33cc33,
+		#0088ff,
+		#6600cc,
+		#ff00cc,
+		#ff0000
+	);
+	background-size: 200% auto;
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+	color: transparent;
+	animation: rainbow-shift 4s linear infinite;
+}
+
+.rainbow-stripe {
+	height: 6px;
+	background: linear-gradient(
+		90deg,
+		#ff0000,
+		#ff8800,
+		#ffee00,
+		#33cc33,
+		#0088ff,
+		#6600cc,
+		#ff00cc,
+		#ff0000
+	);
+	background-size: 200% 100%;
+	animation: rainbow-shift 3s linear infinite;
+}
+
+.rainbow-border {
+	position: relative;
+	border-radius: 0.75rem;
+}
+
+.rainbow-border::before {
+	content: '';
+	position: absolute;
+	inset: -3px;
+	z-index: -1;
+	border-radius: 0.95rem;
+	background: linear-gradient(
+		45deg,
+		#ff0000,
+		#ff8800,
+		#ffee00,
+		#33cc33,
+		#0088ff,
+		#6600cc,
+		#ff00cc,
+		#ff0000
+	);
+	background-size: 300% 300%;
+	animation: rainbow-shift 4s linear infinite;
+}
+
+.rainbow-bg-soft {
+	background: linear-gradient(
+		120deg,
+		rgba(255, 0, 0, 0.08),
+		rgba(255, 136, 0, 0.08),
+		rgba(255, 238, 0, 0.08),
+		rgba(51, 204, 51, 0.08),
+		rgba(0, 136, 255, 0.08),
+		rgba(102, 0, 204, 0.08),
+		rgba(255, 0, 204, 0.08)
+	);
+	background-size: 400% 400%;
+	animation: rainbow-shift 20s ease infinite;
+}
+
+.dark .rainbow-bg-soft {
+	background: linear-gradient(
+		120deg,
+		rgba(255, 0, 0, 0.14),
+		rgba(255, 136, 0, 0.14),
+		rgba(255, 238, 0, 0.14),
+		rgba(51, 204, 51, 0.14),
+		rgba(0, 136, 255, 0.14),
+		rgba(102, 0, 204, 0.14),
+		rgba(255, 0, 204, 0.14)
+	);
+	background-size: 400% 400%;
+	animation: rainbow-shift 20s ease infinite;
+}
+
+.rainbow-link {
+	background: linear-gradient(
+		90deg,
+		#ff0000,
+		#ff8800,
+		#ffee00,
+		#33cc33,
+		#0088ff,
+		#6600cc,
+		#ff00cc,
+		#ff0000
+	);
+	background-size: 200% auto;
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+	color: transparent;
+	transition: background-position 0.3s ease;
+}
+
+.rainbow-link:hover {
+	animation: rainbow-shift 1.5s linear infinite;
+}
+
+.rainbow-hover-bg {
+	transition: background 0.3s ease;
+}
+
+.rainbow-hover-bg:hover {
+	background: linear-gradient(
+		90deg,
+		rgba(255, 0, 0, 0.12),
+		rgba(255, 136, 0, 0.12),
+		rgba(255, 238, 0, 0.12),
+		rgba(51, 204, 51, 0.12),
+		rgba(0, 136, 255, 0.12),
+		rgba(102, 0, 204, 0.12),
+		rgba(255, 0, 204, 0.12)
+	);
+	background-size: 200% auto;
+	animation: rainbow-shift 2s linear infinite;
+}
+
+.rainbow-spin {
+	display: inline-block;
+	animation: rainbow-spin 6s linear infinite;
+}
+
+.group:hover .blog-card-title {
+	background: linear-gradient(
+		90deg,
+		#ff0000,
+		#ff8800,
+		#ffee00,
+		#33cc33,
+		#0088ff,
+		#6600cc,
+		#ff00cc,
+		#ff0000
+	);
+	background-size: 200% auto;
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+	color: transparent;
+	animation: rainbow-shift 4s linear infinite;
+}

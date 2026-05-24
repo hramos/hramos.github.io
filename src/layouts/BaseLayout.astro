@@ -35,10 +35,12 @@ import '@fontsource-variable/jetbrains-mono'
 		/>
 	</head>
 	<body
-		class="text-foreground bg-background font-light dark:text-foreground-dark dark:bg-background-dark transition-colors"
+		class="text-foreground bg-background font-light dark:text-foreground-dark dark:bg-background-dark transition-colors rainbow-bg-soft relative"
 	>
+		<div class="rainbow-stripe fixed top-0 left-0 right-0 z-50"></div>
 		<Navbar title={SITE_TITLE} />
 		<slot />
 		{!hideFooter && <Footer />}
+		<div class="rainbow-stripe fixed bottom-0 left-0 right-0 z-50"></div>
 	</body>
 </html>

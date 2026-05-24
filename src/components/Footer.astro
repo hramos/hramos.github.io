@@ -7,16 +7,17 @@ const today = new Date()
 ---
 
 <footer>
+	<div class="rainbow-stripe mx-6 sm:mx-12 2xl:mx-16 rounded-full"></div>
 	<div
-		class="app-container grid md:grid-cols-3 gap-12 py-16 border-t-2 border-foreground/50 dark:border-foreground-dark/50"
+		class="app-container grid md:grid-cols-3 gap-12 py-16"
 	>
 		<div>
-			<h3 class="font-semibold text-2xl">
-				<a href="/" class="block w-fit" aria-label="Home">Home</a>
+			<h3 class="font-semibold text-2xl rainbow-text">
+				<a href="/" class="block w-fit" aria-label="Home">🌈 Home</a>
 			</h3>
 		</div>
 		<div>
-			<h3 class="font-semibold text-2xl">Links</h3>
+			<h3 class="font-semibold text-2xl rainbow-text">🌈 Links</h3>
 			<div class="flex flex-wrap gap-4 mt-4">
 				{
 					WebsiteLinks.filter((link) => link.name !== 'Home').map((link) => (
@@ -42,7 +43,7 @@ const today = new Date()
 			</div>
 		</div>
 		<div>
-			<h3 class="font-semibold text-2xl">Socials</h3>
+			<h3 class="font-semibold text-2xl rainbow-text">🌈 Socials</h3>
 			<div class="flex flex-wrap gap-4 mt-4">
 				{
 					SocialLinks.map((link) => (
