@@ -12,7 +12,11 @@ const isActive =
 	(pathname.startsWith('/blog') && href === '/blog')
 ---
 
-<a href={href} class:list={[className, { active: isActive }]} {...props}>
+<a
+	href={href}
+	class:list={[className, 'nav-link rainbow-text', { active: isActive }]}
+	{...props}
+>
 	<slot />
 </a>
 <style>

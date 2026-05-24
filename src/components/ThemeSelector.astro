@@ -54,6 +54,19 @@ const { class: className } = Astro.props
 		@apply p-1 rounded-full duration-0;
 	}
 	:global(button.active) {
-		@apply text-background bg-foreground/90 dark:text-background-dark dark:bg-foreground-dark/90;
+		background-image: linear-gradient(
+			90deg,
+			#ff0000,
+			#ff8800,
+			#ffee00,
+			#33cc33,
+			#0099ff,
+			#6633cc,
+			#cc33cc,
+			#ff0000
+		);
+		background-size: 200% auto;
+		color: #ffffff;
+		animation: rainbow-shift 4s linear infinite;
 	}
 </style>

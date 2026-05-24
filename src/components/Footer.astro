@@ -21,7 +21,7 @@ const today = new Date()
 				{
 					WebsiteLinks.filter((link) => link.name !== 'Home').map((link) => (
 						<a
-							class="text-lg"
+							class="text-lg rainbow-link font-semibold"
 							href={`/${link.url}`}
 							target="_blank"
 							rel="noopener noreferrer"
@@ -47,7 +47,7 @@ const today = new Date()
 				{
 					SocialLinks.map((link) => (
 						<a
-							class="text-lg"
+							class="text-lg rainbow-link font-semibold"
 							href={link.url}
 							target="_blank"
 							rel="noopener noreferrer"
