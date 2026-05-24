@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 import { SITE_BASE, SocialLinks } from '../consts'
 import { Icon } from 'astro-icon/components'
 import BlogCard from '../components/BlogCard.astro'
+import Puppy from '../components/Puppy.astro'
 import { getCollection } from 'astro:content'
 
 const posts = (await getCollection('blog'))
@@ -14,6 +15,7 @@ const posts = (await getCollection('blog'))
 	<main
 		class="app-container flex flex-col gap-12 justify-center py-36 md:py-48 pt-44 md:pt-56 relative"
 	>
+		<Puppy id={1} width={1280} height={480} alt="Hello, puppy" class="w-full" />
 		<p class="text-2xl max-w-2xl font-light leading-normal">
 			Héctor has spent his career building developer tools that change how
 			entire ecosystems ship software. A computer engineer with 20 years of
@@ -55,6 +57,17 @@ const posts = (await getCollection('blog'))
 		</div>
 	</main>
 
+	<!-- Puppy Gallery -->
+	<section class="app-container">
+		<h2 class="section-title">Puppies</h2>
+		<div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+			<Puppy id={10} width={400} height={400} alt="Puppy one" />
+			<Puppy id={11} width={400} height={400} alt="Puppy two" />
+			<Puppy id={12} width={400} height={400} alt="Puppy three" />
+			<Puppy id={13} width={400} height={400} alt="Puppy four" />
+		</div>
+	</section>
+
 	<!-- Recent Posts Section -->
 	<section class="app-container">
 		<h2 class="section-title">Writing</h2>
@@ -84,6 +97,7 @@ const posts = (await getCollection('blog'))
 			</a>
 		</div>
 		<div class="space-y-6">
+			<Puppy id={20} width={600} height={400} alt="Get in touch puppy" />
 			<h2 class="section-title">Get in touch</h2>
 			<p class="text-lg max-w-xl">
 				Feel free to reach out via email or connect with me on social media.

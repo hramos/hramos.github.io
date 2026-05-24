@@ -1,0 +1,30 @@
+---
+interface Props {
+	id?: number
+	width?: number
+	height?: number
+	alt?: string
+	class?: string
+}
+
+const {
+	id,
+	width = 640,
+	height = 480,
+	alt = 'A very good puppy',
+	class: className = '',
+} = Astro.props
+
+const src = id
+	? `https://placedog.net/${width}/${height}?id=${id}`
+	: `https://placedog.net/${width}/${height}?random`
+---
+
+<img
+	src={src}
+	width={width}
+	height={height}
+	alt={alt}
+	loading="lazy"
+	class={`rounded-xl shadow-lg ${className}`}
+/>

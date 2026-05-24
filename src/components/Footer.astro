@@ -2,11 +2,15 @@
 import { SocialLinks, WebsiteLinks } from '../consts'
 import LogoSVG from '../assets/logo.svg'
 import { Icon } from 'astro-icon/components'
+import Puppy from './Puppy.astro'
 
 const today = new Date()
 ---
 
 <footer>
+	<div class="app-container pt-12">
+		<Puppy id={40} width={1280} height={300} alt="Footer puppy" class="w-full" />
+	</div>
 	<div
 		class="app-container grid md:grid-cols-3 gap-12 py-16 border-t-2 border-foreground/50 dark:border-foreground-dark/50"
 	>
