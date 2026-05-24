@@ -40,17 +40,5 @@ import '@fontsource-variable/jetbrains-mono'
 		<Navbar title={SITE_TITLE} />
 		<slot />
 		{!hideFooter && <Footer />}
-		<script>
-			const randomize = () => {
-				document.querySelectorAll('a').forEach((a) => {
-					const h = Math.floor(Math.random() * 360)
-					const s = 60 + Math.floor(Math.random() * 40)
-					const l = 35 + Math.floor(Math.random() * 35)
-					;(a as HTMLAnchorElement).style.color = `hsl(${h}, ${s}%, ${l}%)`
-				})
-			}
-			randomize()
-			document.addEventListener('astro:after-swap', randomize)
-		</script>
 	</body>
 </html>
