@@ -48,3 +48,23 @@ html {
 .prose iframe {
 	@apply my-16 mx-auto w-11/12 aspect-video rounded-xl;
 }
+
+@keyframes rgb-cycle {
+	0%   { color: #ff0000; }
+	16%  { color: #ff8000; }
+	33%  { color: #ffff00; }
+	50%  { color: #00c000; }
+	66%  { color: #0080ff; }
+	83%  { color: #8000ff; }
+	100% { color: #ff0000; }
+}
+
+.rgb {
+	animation: rgb-cycle 6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.rgb {
+		animation: none;
+	}
+}
