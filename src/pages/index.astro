@@ -11,6 +11,7 @@ const posts = (await getCollection('blog'))
 ---
 
 <BaseLayout>
+	<div class="grayscale-theme">
 	<main
 		class="app-container flex flex-col gap-12 justify-center py-36 md:py-48 pt-44 md:pt-56 relative"
 	>
@@ -99,4 +100,13 @@ const posts = (await getCollection('blog'))
 			</div>
 		</div>
 	</section>
+	</div>
 </BaseLayout>
+
+<style>
+	/* Grayscale theme: desaturate all homepage content, including the
+	   accent links and blog cover images. */
+	.grayscale-theme {
+		filter: grayscale(100%);
+	}
+</style>
