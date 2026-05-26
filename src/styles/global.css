@@ -48,3 +48,105 @@ html {
 .prose iframe {
 	@apply my-16 mx-auto w-11/12 aspect-video rounded-xl;
 }
+
+/* RGB everything */
+@keyframes rgb-hue {
+	0%   { filter: hue-rotate(0deg); }
+	100% { filter: hue-rotate(360deg); }
+}
+
+@keyframes rgb-text {
+	0%   { color: hsl(0,   90%, 55%); }
+	17%  { color: hsl(60,  90%, 50%); }
+	33%  { color: hsl(120, 80%, 45%); }
+	50%  { color: hsl(180, 80%, 45%); }
+	67%  { color: hsl(240, 90%, 60%); }
+	83%  { color: hsl(300, 90%, 55%); }
+	100% { color: hsl(360, 90%, 55%); }
+}
+
+@keyframes rgb-border {
+	0%   { border-color: hsl(0,   90%, 55%); }
+	17%  { border-color: hsl(60,  90%, 50%); }
+	33%  { border-color: hsl(120, 80%, 45%); }
+	50%  { border-color: hsl(180, 80%, 45%); }
+	67%  { border-color: hsl(240, 90%, 60%); }
+	83%  { border-color: hsl(300, 90%, 55%); }
+	100% { border-color: hsl(360, 90%, 55%); }
+}
+
+@keyframes rgb-bg-sweep {
+	0%   { background-position:   0% 50%; }
+	100% { background-position: 400% 50%; }
+}
+
+html {
+	background: linear-gradient(
+		90deg,
+		hsl(0,   90%, 55%),
+		hsl(60,  90%, 50%),
+		hsl(120, 80%, 45%),
+		hsl(180, 80%, 45%),
+		hsl(240, 90%, 60%),
+		hsl(300, 90%, 55%),
+		hsl(360, 90%, 55%)
+	);
+	background-size: 400% 400%;
+	animation: rgb-bg-sweep 12s linear infinite;
+}
+
+body {
+	background-color: transparent !important;
+}
+
+h1, h2, h3, h4, h5, h6,
+a,
+.section-title {
+	animation: rgb-text 6s linear infinite;
+}
+
+h1 { animation-delay: 0s; }
+h2 { animation-delay: -1s; }
+h3 { animation-delay: -2s; }
+h4 { animation-delay: -3s; }
+h5 { animation-delay: -4s; }
+h6 { animation-delay: -5s; }
+
+a:hover {
+	text-shadow: 0 0 8px currentColor;
+}
+
+img, video, iframe, svg {
+	animation: rgb-hue 8s linear infinite;
+}
+
+hr,
+.prose blockquote,
+.prose pre,
+.prose code,
+input,
+textarea,
+select,
+button {
+	animation: rgb-border 6s linear infinite;
+	border-width: 2px;
+	border-style: solid;
+}
+
+.btn-primary,
+.btn-secondary {
+	animation: rgb-border 6s linear infinite, rgb-text 6s linear infinite;
+	border-width: 2px;
+	border-style: solid;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html,
+	h1, h2, h3, h4, h5, h6, a,
+	img, video, iframe, svg,
+	hr, .prose blockquote, .prose pre, .prose code,
+	input, textarea, select, button,
+	.btn-primary, .btn-secondary {
+		animation: none;
+	}
+}
