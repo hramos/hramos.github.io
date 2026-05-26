@@ -37,7 +37,153 @@ html {
 }
 
 .section-title {
-	@apply text-4xl font-semibold pb-3;
+	@apply text-4xl font-semibold pb-3 inline-block;
+}
+.section-title {
+	position: relative;
+}
+.section-title::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	height: 3px;
+	width: 100%;
+	background: linear-gradient(
+		90deg,
+		#ff0000,
+		#ffee00,
+		#33ff00,
+		#00ddff,
+		#3300ff,
+		#cc00ff,
+		#ff0000
+	);
+	background-size: 200% 100%;
+	border-radius: 2px;
+	animation: rgb-shift 6s linear infinite;
+}
+
+@keyframes rgb-hue {
+	from {
+		filter: hue-rotate(0deg);
+	}
+	to {
+		filter: hue-rotate(360deg);
+	}
+}
+
+@keyframes rgb-shift {
+	0% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+	100% {
+		background-position: 0% 50%;
+	}
+}
+
+.rgb-text {
+	background: linear-gradient(
+		90deg,
+		#ff0000,
+		#ff8800,
+		#ffee00,
+		#33ff00,
+		#00ddff,
+		#3300ff,
+		#cc00ff,
+		#ff0000
+	);
+	background-size: 200% 100%;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	animation: rgb-shift 6s linear infinite;
+}
+
+.rgb-underline {
+	position: relative;
+}
+.rgb-underline::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	height: 3px;
+	width: 100%;
+	background: linear-gradient(
+		90deg,
+		#ff0000,
+		#ffee00,
+		#33ff00,
+		#00ddff,
+		#3300ff,
+		#cc00ff,
+		#ff0000
+	);
+	background-size: 200% 100%;
+	border-radius: 2px;
+	animation: rgb-shift 6s linear infinite;
+}
+
+.rgb-border {
+	position: relative;
+	isolation: isolate;
+}
+.rgb-border::before {
+	content: '';
+	position: absolute;
+	inset: -2px;
+	border-radius: inherit;
+	background: linear-gradient(
+		120deg,
+		#ff0000,
+		#ffee00,
+		#33ff00,
+		#00ddff,
+		#3300ff,
+		#cc00ff,
+		#ff0000
+	);
+	background-size: 200% 200%;
+	animation: rgb-shift 5s linear infinite;
+	z-index: -1;
+	opacity: 0;
+	transition: opacity 0.25s ease;
+}
+.rgb-border:hover::before,
+.rgb-border:focus-within::before {
+	opacity: 1;
+}
+
+.rgb-dot {
+	display: inline-block;
+	width: 0.625rem;
+	height: 0.625rem;
+	border-radius: 9999px;
+	background: conic-gradient(
+		#ff0000,
+		#ffee00,
+		#33ff00,
+		#00ddff,
+		#3300ff,
+		#cc00ff,
+		#ff0000
+	);
+	box-shadow: 0 0 8px currentColor;
+	animation: rgb-hue 4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.rgb-text,
+	.rgb-underline::after,
+	.rgb-border::before,
+	.rgb-dot {
+		animation: none;
+	}
 }
 
 .posts-grid-container {
