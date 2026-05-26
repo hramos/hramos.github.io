@@ -37,7 +37,54 @@ html {
 }
 
 .section-title {
-	@apply text-4xl font-semibold pb-3;
+	@apply text-4xl font-semibold pb-3 relative inline-block;
+}
+
+.section-title::after {
+	content: '';
+	@apply absolute left-0 bottom-0 h-1 w-full rounded-full;
+	background: linear-gradient(
+		90deg,
+		rgb(255, 64, 64) 0%,
+		rgb(255, 176, 64) 20%,
+		rgb(240, 224, 64) 40%,
+		rgb(96, 208, 96) 60%,
+		rgb(64, 160, 240) 80%,
+		rgb(176, 96, 240) 100%
+	);
+}
+
+.rainbow-name {
+	background: linear-gradient(
+		90deg,
+		rgb(255, 64, 64),
+		rgb(255, 176, 64),
+		rgb(240, 224, 64),
+		rgb(96, 208, 96),
+		rgb(64, 160, 240),
+		rgb(176, 96, 240),
+		rgb(255, 64, 64)
+	);
+	background-size: 200% 100%;
+	background-position: 0% 50%;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	transition: background-position 0.4s ease;
+}
+
+.rainbow-name:hover {
+	background-position: 100% 50%;
+	animation: rainbow-shift 2.5s linear infinite;
+}
+
+@keyframes rainbow-shift {
+	from {
+		background-position: 0% 50%;
+	}
+	to {
+		background-position: 200% 50%;
+	}
 }
 
 .posts-grid-container {
