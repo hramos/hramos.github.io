@@ -13,11 +13,66 @@
 	--color-background-dark: #2b2b2b;
 	--color-primary: #0784b5;
 	--color-primary-dark: #9bd4e4;
+
+	--rainbow: linear-gradient(
+		90deg,
+		#ff0000,
+		#ff8000,
+		#ffd500,
+		#33cc33,
+		#0099ff,
+		#6633cc,
+		#cc33cc
+	);
+}
+
+@keyframes rainbow-shift {
+	0% { background-position: 0% 50%; }
+	100% { background-position: 200% 50%; }
 }
 
 html {
 	scroll-padding-top: 6.5rem;
 	scroll-behavior: smooth;
+}
+
+body::before {
+	content: '';
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 6px;
+	background: var(--rainbow);
+	background-size: 200% 100%;
+	animation: rainbow-shift 6s linear infinite;
+	z-index: 100;
+	pointer-events: none;
+}
+
+h1, h2, h3 {
+	background: var(--rainbow);
+	background-size: 200% 100%;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	animation: rainbow-shift 8s linear infinite;
+}
+
+a:not(.btn-primary):not(.btn-secondary):not(nav a) {
+	background-image: var(--rainbow);
+	background-size: 200% 0.15em;
+	background-repeat: no-repeat;
+	background-position: 0 100%;
+	transition: background-size 0.25s ease;
+}
+
+a:not(.btn-primary):not(.btn-secondary):not(nav a):hover {
+	background-size: 200% 100%;
+	background-position: 0 100%;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
 }
 
 .app-container {
@@ -30,10 +85,27 @@ html {
 
 .btn-primary {
 	@apply w-fit flex gap-2 bg-foreground text-background dark:bg-foreground-dark dark:text-background-dark px-5 py-3 md:px-4 md:py-2 rounded-lg items-center mt-4 hover:opacity-75 transition-opacity;
+	box-shadow: 0 0 0 2px transparent;
+	background-image: var(--rainbow), linear-gradient(currentColor, currentColor);
+	background-origin: border-box;
+	background-clip: padding-box, border-box;
+	border: 2px solid transparent;
 }
 
 .btn-secondary {
 	@apply w-fit flex gap-2 bg-foreground/10 text-foreground dark:bg-foreground-dark/10 dark:text-foreground-dark px-5 py-3 md:px-4 md:py-2 rounded-lg items-center mt-4 hover:opacity-75 transition-opacity;
+	border: 2px solid transparent;
+	background-image:
+		linear-gradient(var(--color-background), var(--color-background)),
+		var(--rainbow);
+	background-origin: border-box;
+	background-clip: padding-box, border-box;
+}
+
+.dark .btn-secondary {
+	background-image:
+		linear-gradient(var(--color-background-dark), var(--color-background-dark)),
+		var(--rainbow);
 }
 
 .section-title {
