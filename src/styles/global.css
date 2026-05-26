@@ -20,6 +20,40 @@ html {
 	scroll-behavior: smooth;
 }
 
+@keyframes rgb-cycle {
+	from {
+		filter: hue-rotate(0deg);
+	}
+	to {
+		filter: hue-rotate(360deg);
+	}
+}
+
+body {
+	animation: rgb-cycle 6s linear infinite;
+}
+
+/* Keep images, videos, and the screenshot at their true colors */
+body img,
+body picture,
+body video,
+body canvas,
+body svg image {
+	filter: hue-rotate(0deg);
+	animation: rgb-cycle 6s linear infinite reverse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	body,
+	body img,
+	body picture,
+	body video,
+	body canvas,
+	body svg image {
+		animation: none;
+	}
+}
+
 .app-container {
 	@apply container mx-auto px-6 sm:px-12 2xl:px-16;
 }
