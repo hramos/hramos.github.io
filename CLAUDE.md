@@ -52,3 +52,17 @@ When creating blog posts:
 - Custom fonts: Inter (variable), JetBrains Mono (variable), Silkscreen
 
 The site is configured for deployment to GitHub Pages with base URL handling via `SITE_BASE` constant.
+
+## PB&J Game Interpreter Server (`server/`)
+
+The `/pbjt` game (static files in `public/pbjt/`) can route player instructions through an
+LLM that translates free-form text into the game's canonical commands. That LLM lives in a
+standalone Node server at `server/` (its own `package.json`, not part of the Astro build).
+
+- Run it: `cd server && npm install && npm run dev` (or `npm run start`). Node 20+.
+- API: `POST /api/pbjt/interpret` → `{ commands: string[] }`. Listens on port 8787 (`PORT` override).
+- Env (`server/.env`, from `.env.example`): `OPENAI_API_KEY`, `PBJT_MODEL` (default `gpt-4o-mini`), `PORT`, `PBJT_MOCK`, `PBJT_ALLOWED_ORIGINS` (default `hectorramos.com` + `www`; localhost any port always allowed), `PBJT_RATE_LIMIT` (default 20/min per IP). Uses the Vercel AI SDK (`ai` + `@ai-sdk/openai`).
+- Mock mode (no key, or `PBJT_MOCK=1`) returns the instruction unchanged — no OpenAI calls.
+- Abuse protection: browser-origin allowlist (403 + no CORS for disallowed origins; no-Origin curl/server calls always allowed) and per-IP rate limit (429 + Retry-After). Shared logic in `server/lib/`.
+- Deploy: Vercel project rooted at `server/` — `server/api/pbjt/interpret.js` is the serverless function (same `lib/`); local dev stays `npm run dev` on 8787. After `vercel --prod`, paste the URL into `PROD_SERVER` in `public/pbjt/interpreter.js` (or use `?server=`). See `server/README.md`.
+- `server/GAME.md` is the LLM system prompt: it documents the game's rules and command vocabulary. See `server/README.md`.

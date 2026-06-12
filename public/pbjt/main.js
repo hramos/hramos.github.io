@@ -61,11 +61,13 @@ window.__scene = scene;
 window.__camera = camera;
 window.__ready = false;
 
-window.addEventListener('resize', () => {
+function onResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-});
+}
+window.addEventListener('resize', onResize);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
 
 let frames = 0;
 let lastFrame = 0;

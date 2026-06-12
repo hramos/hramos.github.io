@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/pbjt/interpret.js": {
+      "runtime": "nodejs20.x",
+      "includeFiles": "GAME.md"
+    }
+  }
+}
