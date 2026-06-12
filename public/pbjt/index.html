@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PB&J — Tell Me How To Make A Sandwich</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #1a1a1a;
+      font-family: "Avenir Next", "Segoe UI", sans-serif; }
+    #app { width: 100%; height: 100%; }
+    #hud {
+      position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+      width: min(680px, 90vw); display: flex; gap: 8px;
+    }
+    #instruction {
+      flex: 1; padding: 12px 16px; font-size: 16px; border-radius: 10px;
+      border: 2px solid #c9a227; background: rgba(255,253,245,.95); color: #3a2c1a;
+      outline: none;
+    }
+    #say, #mic, #audio, #history-toggle, #reset, #help-toggle {
+      padding: 12px 18px; font-size: 16px; border-radius: 10px; border: none;
+      background: #c9a227; color: #fff; cursor: pointer; font-weight: 600;
+    }
+    #reset { position: fixed; right: 112px; top: 16px; background: #8a6a4a; }
+    #help-toggle { position: fixed; right: 258px; top: 16px; background: #2e6f6c; }
+    #help {
+      position: fixed; left: 50%; top: 70px; transform: translateX(-50%);
+      width: min(560px, 90vw); max-height: 75vh; overflow-y: auto;
+      background: rgba(30, 26, 20, .95); color: #f0e8d8; border-radius: 12px;
+      padding: 18px 22px; display: none; font-size: 14px; line-height: 1.5;
+      box-shadow: 0 6px 20px rgba(0,0,0,.4);
+    }
+    #help h3 { margin: 0 0 8px; color: #c9a227; letter-spacing: .08em;
+      text-transform: uppercase; font-size: 14px; }
+    #help ul { margin: 4px 0 10px; padding-left: 20px; }
+    #help b { color: #ffe9a8; }
+    #mic.listening { background: #c43a3a; animation: pulse 1s infinite; }
+    @keyframes pulse { 50% { transform: scale(1.12); } }
+    #speech {
+      position: fixed; left: 50%; top: 16px; transform: translateX(-50%);
+      max-width: 70vw; padding: 10px 18px; border-radius: 14px;
+      background: rgba(255,253,245,.95); color: #3a2c1a; font-size: 15px;
+      box-shadow: 0 4px 14px rgba(0,0,0,.25); display: none;
+    }
+    #history-toggle {
+      position: fixed; right: 16px; top: 16px;
+    }
+    #history {
+      position: fixed; right: 16px; top: 64px; bottom: 90px; width: min(380px, 85vw);
+      background: rgba(30, 26, 20, .93); color: #f0e8d8; border-radius: 12px;
+      padding: 14px; overflow-y: auto; display: none;
+      box-shadow: 0 6px 20px rgba(0,0,0,.4);
+    }
+    #history h3 { margin: 0 0 10px; font-size: 14px; letter-spacing: .08em;
+      text-transform: uppercase; color: #c9a227; }
+    #history .entry { border-bottom: 1px solid rgba(201,162,39,.25);
+      padding: 9px 2px; font-size: 13px; line-height: 1.45; }
+    #history .you { color: #ffe9a8; font-weight: 600; }
+    #history .heard { color: #9fd0a8; font-style: italic; margin-top: 3px; }
+    #history .did { color: #e8d8c8; margin-top: 3px; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="speech"></div>
+  <button id="help-toggle" title="How to play">❓ Help</button>
+  <button id="reset" title="Reset the kitchen">↺ Start again</button>
+  <button id="history-toggle" title="Instruction log">📜 Log</button>
+  <div id="help">
+    <h3>How to play</h3>
+    <p>Tell the chef how to make a peanut butter &amp; jelly sandwich. The chef does
+    <b>exactly</b> what you say — no more, no less. If a step isn't in your
+    instruction, it doesn't happen.</p>
+    <p><b>Getting started:</b></p>
+    <ul>
+      <li>Everything starts sealed, bagged, and put away. Get things open and out first.</li>
+      <li>Things can be opened, taken out, picked up, and put on other things.</li>
+      <li>Spreading needs something to spread <i>with</i>… and something on the tool.</li>
+      <li>Slices have two sides. Think about which way the spread faces before stacking.</li>
+    </ul>
+    <p><b>Good to know:</b></p>
+    <ul>
+      <li>Be specific: "the left slice", "the peanut butter jar". Vague words get literal results.</li>
+      <li>The kitchen obeys physics — unsupported things fall, and the chef has exactly two hands and two arms of normal length.</li>
+      <li>The chef will tell you <i>why</i> when something is physically impossible.</li>
+      <li>The pantry shelf is full of things you never asked for. Words like "butter" are riskier than they look.</li>
+      <li>There are plenty of sillier actions to discover. Experiment.</li>
+    </ul>
+    <p><b>Controls:</b> drag to orbit, scroll to zoom · ↑/↓ recall previous instructions ·
+    🎤 speak instead of type · 🔊 sounds &amp; chef voice · 📜 instruction log ·
+    ↺ start over · or say "look at the shelf" / "zoom out".</p>
+  </div>
+  <div id="history">
+    <h3>Instruction Log</h3>
+    <div id="history-list"></div>
+  </div>
+  <div id="hud">
+    <input id="instruction" type="text" placeholder="Tell me how to make a sandwich..." />
+    <button id="mic" title="Speak your instruction">🎤</button>
+    <button id="audio" title="Sounds and chef voice">🔊</button>
+    <button id="say">Say it</button>
+  </div>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
