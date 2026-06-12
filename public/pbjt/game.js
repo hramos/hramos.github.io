@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { objects, makeBreadSliceFlat } from './scene.js';
 import { sfx, sayAloud, audioEnabled, setAudioEnabled } from './sounds.js';
+import { serverBase, interpret } from './interpreter.js';
 
 let scene, camera, controls;
 const state = {
@@ -21,6 +22,59 @@ const state = {
 };
 const homes = new Map(); // obj -> { pos, quat, scale }
 
+// Rolling log of real plays for the server-side interpreter (last 6 exchanges).
+const llmHistory = []; // { instruction, response }
+function pushLlmHistory(instruction, response) {
+  llmHistory.push({ instruction, response });
+  while (llmHistory.length > 6) llmHistory.shift();
+}
+
+// Short plain-text world summary the LLM needs to translate free text into
+// canonical commands. Every claim is read straight from live `state`/`objects`
+// fields (slice userData.state.spread/faceUp, jar/bag userData.state.open,
+// state.held/heldLabels, state.knifeBlob). Kept to a handful of compact lines.
+export function describeState() {
+  const lines = [];
+
+  const bagOpen = objects.breadBag?.userData?.state?.open;
+  lines.push(`Bread bag: ${bagOpen ? 'open' : 'closed'}.`);
+
+  const pbOpen = objects.peanutButterJar?.userData?.state?.open;
+  const jellyOpen = objects.jellyJar?.userData?.state?.open;
+  lines.push(`Peanut butter jar: ${pbOpen ? 'open' : 'closed'}. Jelly jar: ${jellyOpen ? 'open' : 'closed'}.`);
+
+  const ordered = sortedSlices();
+  if (ordered.length === 0) {
+    lines.push('No bread slices are out — they are still in the bag.');
+  } else {
+    const plate = objects.plate;
+    const onPlate = (sl) =>
+      Math.hypot(sl.position.x - plate.position.x, sl.position.z - plate.position.z) < 0.11;
+    const sliceDesc = ordered.map((sl, i) => {
+      const label = ordered.length < 2
+        ? 'a slice'
+        : (i === 0 ? 'left slice' : i === ordered.length - 1 ? 'right slice' : 'middle slice');
+      const sp = sl.userData.state.spread;
+      const spread = sp ? (sp === 'pb' ? 'peanut butter' : 'jelly') : 'nothing';
+      const face = sl.userData.state.faceUp ? 'face-up' : 'face-down';
+      const where = onPlate(sl) ? 'on the plate' : 'on the counter';
+      return `${label} (${spread} side, ${face}, ${where})`;
+    });
+    lines.push(`${ordered.length} slice${ordered.length === 1 ? '' : 's'} out: ${sliceDesc.join('; ')}.`);
+  }
+
+  const left = state.heldLabels.leftHand;
+  const right = state.heldLabels.rightHand;
+  lines.push(`Left hand: ${left ? `holding the ${left}` : 'empty'}. Right hand: ${right ? `holding the ${right}` : 'empty'}.`);
+
+  if (state.knifeBlob) {
+    const k = state.knifeBlob.kind === 'pb' ? 'peanut butter' : 'jelly';
+    lines.push(`The knife has ${k} on it.`);
+  }
+
+  return lines.join('\n');
+}
+
 // physics tuning
 const MAX_REACH = 1.12;          // arm length from shoulder anchor, meters
 const COUNTER = { x: 0.78, zMin: -0.34, zMax: 0.33 };
@@ -35,6 +89,7 @@ function clampToCounter(v) {
 
 // ---------- tween engine ----------
 const active = [];
+const falling = [];
 
 function ts() { return window.__timeScale || 1; }
 
@@ -62,9 +117,56 @@ export function tickGame(dt) {
     tw.obj.scale.lerpVectors(tw.startScale, tw.endScale, e);
     if (tw.t >= 1) { active.splice(i, 1); tw.resolve(); }
   }
+  for (let i = falling.length - 1; i >= 0; i--) {
+    if (stepFall(falling[i], dt)) { const f = falling[i]; falling.splice(i, 1); f.resolve(); }
+  }
 }
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms * ts()));
+
+// ---------- gravity ----------
+const G = 9.8;                 // m/s^2
+const RESTITUTION = 0.25;      // bounce energy retained on impact
+const REST_SPEED = 0.18;       // below this landing speed, come to rest
+
+// advance one free-fall body (v is signed: + = falling). Returns true at rest.
+function stepFall(f, dt) {
+  // timeScale < 1 should make falls proportionally faster (tween durs scale by ts())
+  const h = dt / ts();
+  f.v += G * h;
+  let y = f.obj.position.y - f.v * h;
+  if (y <= f.supportY) {
+    // touched the support: clamp so we never pass below it
+    y = f.supportY;
+    f.obj.position.y = y;
+    if (!f.landed) { f.landed = true; f.onLand && f.onLand(); }  // fire once
+    const rebound = f.v * RESTITUTION;
+    // Rest threshold must exceed one step's gravity gain (G*h) so a coarse dt
+    // can't re-energize a dying bounce into an endless loop. Falls terminate.
+    if (rebound > Math.max(REST_SPEED, G * h)) {
+      f.v = -rebound;            // bounce: now moving up, decaying each impact
+      return false;
+    }
+    return true;                 // too slow to bounce: at rest
+  }
+  f.obj.position.y = y;
+  return false;
+}
+
+// Free-fall obj.position.y down to supportY under gravity, with a small impact
+// bounce that decays to rest. supportY is in obj-local space (the space tween()
+// writes). onLand fires once, the instant it first touches down. Awaitable.
+function fall(obj, supportY, { onLand } = {}) {
+  return new Promise((resolve) => {
+    if (obj.position.y <= supportY + 1e-4) {
+      obj.position.y = supportY;
+      onLand && onLand();
+      resolve();
+      return;
+    }
+    falling.push({ obj, supportY, v: 0, landed: false, onLand, resolve });
+  });
+}
 
 // ---------- physics refusals ----------
 
@@ -316,15 +418,11 @@ async function settlePhysics() {
       if (support < -0.5) continue;
       const gap = box.min.y - support;
       if (gap > 0.008) {
-        const dest = obj.position.clone();
-        dest.y -= gap;
-        drops.push(tween(obj, { pos: dest }, Math.min(0.18 + gap * 0.6, 0.5)).then(async () => {
-          // tiny bounce
-          const up = obj.position.clone(); up.y += Math.min(gap * 0.12, 0.02);
-          await tween(obj, { pos: up }, 0.08);
-          await tween(obj, { pos: dest }, 0.08);
-        }));
-        if (!state.looseBits.includes(obj)) { fell.push(labelOf(obj)); drops[drops.length - 1].then(() => sfx('thud')); }
+        const supportY = obj.position.y - gap;       // local-space landing height
+        const isLoose = state.looseBits.includes(obj);
+        if (!isLoose) fell.push(labelOf(obj));
+        // thud fires the moment it actually lands, not after the bounce settles
+        drops.push(fall(obj, supportY, { onLand: isLoose ? undefined : () => sfx('thud') }));
       }
     }
     if (!drops.length) break;
@@ -392,6 +490,36 @@ function sliceLabelFor(slice) {
   return slice === sl[0] ? 'left slice' : slice === sl[sl.length - 1] ? 'right slice' : 'middle slice';
 }
 
+// ---------- typo normalization ----------
+
+// rewrite common misspellings of ITEM nouns to their canonical word before any
+// matching. word-boundary-anchored so we don't corrupt substrings of other words.
+// (verbs are out of scope — only item nouns are normalized here.)
+const TYPO_FIXES = [
+  [/\bpe+n+ut(t)?s?\b|\bpnuts?\b|\bpeannuts?\b/g, 'peanut'],
+  [/\bbut+er+\b|\bbuttr\b/g, 'butter'],
+  [/\bjell?ey\b|\bjellie\b|\bjeli\b|\bjelyl\b|\bjell+y\b/g, 'jelly'],
+  [/\bjaam\b/g, 'jam'],
+  [/\bkniv(e|es)\b|\bnife\b|\bkniffe\b|\bknfe\b/g, 'knife'],
+  [/\bsand?w(h|t)?i(t)?ch\b|\bsand?wish\b|\bsa(m|n)+wich\b|\bsammich\b/g, 'sandwich'],
+  [/\bbred\b|\bbraed\b|\bbrean\b/g, 'bread'],
+  [/\bban+an+a?\b/g, 'banana'],
+  [/\bmayon(n)?ais?e\b/g, 'mayonnaise'],
+  [/\bmust(e|u)rd\b/g, 'mustard'],
+  [/\bke(t)?chup\b|\bketsup\b|\bkethcup\b/g, 'ketchup'],
+  [/\bcer(e)?ral\b|\bceareal\b|\bcerial\b/g, 'cereal'],
+  [/\bhunny\b|\bhonn(e)?y\b/g, 'honey'],
+  [/\bspachula\b|\bspatuala\b/g, 'spatula'],
+  [/\bpeice\b/g, 'piece'],
+  [/\bsli(s|ec)e\b/g, 'slice'],
+  [/\bpalte\b|\bplat\b/g, 'plate'],
+  [/\bcountr\b|\bcounterr\b/g, 'counter'],
+];
+function fixTypos(s) {
+  for (const [re, word] of TYPO_FIXES) s = s.replace(re, word);
+  return s;
+}
+
 // ---------- thing resolution ----------
 
 const THING_WORDS = [
@@ -404,7 +532,7 @@ const THING_WORDS = [
   { re: /ketchup|catsup/, name: 'ketchup', label: 'ketchup bottle' },
   { re: /mayo(nnaise)?/, name: 'mayo', label: 'jar of mayo' },
   { re: /honey/, name: 'honey', label: 'jar of honey' },
-  { re: /\bbutter\b/, name: 'butterDish', label: 'butter dish (real butter — you said butter)' },
+  { re: /\bbutter\b/, name: 'butterDish', label: 'butter dish' },
   { re: /banana/, name: 'banana', label: 'banana' },
   { re: /apple/, name: 'apple', label: 'apple' },
   { re: /\bsalt\b/, name: 'salt', label: 'salt shaker' },
@@ -419,7 +547,7 @@ const THING_WORDS = [
   { re: /counter|table/, name: 'counter', label: 'counter' },
   { re: /plate|dish/, name: 'plate', label: 'plate' },
   { re: /bag|loaf/, name: 'breadBag', label: 'bag of bread' },
-  { re: /bread/, name: 'breadBag', label: 'bread (the whole bag — that IS the bread)' },
+  { re: /bread/, name: 'breadBag', label: 'bag of bread' },
   { re: /left hand/, name: 'leftHand', label: 'left hand' },
   { re: /right hand/, name: 'rightHand', label: 'right hand' },
 ];
@@ -429,6 +557,9 @@ function resolveThing(str) {
       && !/slice|bread|jar|knife|bag|butter|jelly|peanut|plate|banana|apple/.test(str)) {
     return state.lastThing;
   }
+  // "the FACE of the bread/slice/toast/sandwich" means a slice's upward face —
+  // not the bread BAG. Rewrite it to a plain slice phrase before matching.
+  str = str.replace(/\bface of (the )?(bread|slice|toast|sandwich)\b/, 'slice');
   if (/slice|piece of bread|piece of toast|sandwich/.test(str) && !/bag|loaf/.test(str)) {
     const sl = sortedSlices();
     if (!sl.length) return { missing: 'slice', label: 'slice of bread' };
@@ -520,7 +651,7 @@ async function ripBag(gentle = false) {
     twist.visible = false;
     bag.userData.state.open = true;
     await handHome(hand);
-    return '*untwists the tie and opens the bag* Open.';
+    return 'Untwisted the tie — the bag is open.';
   }
   tween(tie, {
     pos: new THREE.Vector3(bag.position.x - 0.2, 0.004, bag.position.z + 0.28),
@@ -545,7 +676,7 @@ async function ripBag(gentle = false) {
   bag.userData.state.open = true;
   await Promise.all(jobs);
   await handHome(hand);
-  return '*rips the bag open* Bread spilled out — you did not say to be gentle.';
+  return 'Ripped the bag open. Bread spilled out — you did not say to be gentle.';
 }
 
 async function openJar(jarName) {
@@ -565,7 +696,7 @@ async function openJar(jarName) {
   jar.userData.state.open = true;
   state.lastJar = jarName;
   await handHome(hand);
-  return `*unscrews the ${label} lid* Open.`;
+  return `Unscrewed the ${label} lid. It is open.`;
 }
 
 async function closeJar(jarName) {
@@ -579,7 +710,7 @@ async function closeJar(jarName) {
   jar.attach(lid);
   sfx('clink');
   jar.userData.state.open = false;
-  return `*screws the ${label} lid back on* Closed.`;
+  return `Screwed the ${label} lid back on. Closed.`;
 }
 
 async function grab(obj, label) {
@@ -597,12 +728,12 @@ async function grab(obj, label) {
   snugGrip(hand, obj);
   const lift = hand.position.clone(); lift.y = clampHandY(hand, lift.y + 0.06);
   await tween(hand, { pos: lift }, 0.4);
-  return `*grabs the ${label}* Holding it.`;
+  return `Grabbed the ${label}.`;
 }
 
 async function releaseHeld() {
   const entries = Object.entries(state.held).filter(([, o]) => o);
-  if (!entries.length) return 'My hands are already empty.';
+  if (!entries.length) return 'Hands are already empty.';
   for (const [hName, obj] of entries) {
     const hand = objects[hName];
     scene.attach(obj);
@@ -610,7 +741,7 @@ async function releaseHeld() {
     state.heldLabels[hName] = null;
     await handHome(hand);
   }
-  return '*lets go* Dropped.';
+  return 'Let go.';
 }
 
 async function putOn(objX, objY, labelX, labelY) {
@@ -631,7 +762,7 @@ async function putOn(objX, objY, labelX, labelY) {
   } else if ((objX === objects.peanutButterJar || objX === objects.jellyJar) && objY !== objects.plate) {
     extra += ' The whole jar.';
   }
-  return `*places the ${labelX} on top of the ${labelY}*${extra}`;
+  return `Placed the ${labelX} on top of the ${labelY}.${extra}`;
 }
 
 async function putSlicesOnPlate() {
@@ -644,7 +775,7 @@ async function putSlicesOnPlate() {
     await carry(sl, dest);
     i++;
   }
-  return '*puts both slices on the plate*';
+  return 'Put both slices on the plate.';
 }
 
 async function rubJarOn(jar, target, jarLabel, targetLabel) {
@@ -661,7 +792,7 @@ async function rubJarOn(jar, target, jarLabel, targetLabel) {
   await tween(jar, { pos: dest }, 0.12);
   await carry(jar, start);
   jar.quaternion.copy(startQuat);
-  return `*rubs the ${jarLabel} on the ${targetLabel}* Nothing spread — it is still sealed in the container.`;
+  return `Rubbed the ${jarLabel} on the ${targetLabel}. Nothing spread — still sealed.`;
 }
 
 async function dipKnife(jarName) {
@@ -676,7 +807,7 @@ async function dipKnife(jarName) {
     await carry(knife, new THREE.Vector3(t.x, t.y + 0.01, t.z));
     await wait(200);
     await carry(knife, start);
-    return `*taps the knife on the lid* The ${label} jar is closed.`;
+    return `Tapped the knife on the lid. The ${label} jar is closed.`;
   }
   const t = topOf(jar);
   const hand = acquireHand(knife.position);
@@ -698,7 +829,7 @@ async function dipKnife(jarName) {
     tween(knife, { pos: new THREE.Vector3(0.20, 0.003, 0.16), rot: new THREE.Euler(0, -0.3, 0) }, 0.6, { arc: 0.08 }),
     handHome(hand),
   ]);
-  return `*dips the knife into the ${label}* The knife has ${label} on it.`;
+  return `Dipped the knife in the ${label}.`;
 }
 
 async function knifeSweep(target, passes = 2) {
@@ -752,11 +883,11 @@ async function spreadOn(kind, target, targetLabel, mentionsKnife) {
     target.userData.state.spread = kind;
     state.knifeBlob.mesh.removeFromParent();
     state.knifeBlob = null;
-    return `*spreads the ${label} on the ${targetLabel}*`;
+    return `Spread the ${label} on the ${targetLabel}.`;
   }
   if (mentionsKnife) {
     await knifeSweep(target);
-    return `*wipes the clean knife across the ${targetLabel}* Nothing spread — there was no ${label} on the knife.`;
+    return `Wiped the clean knife across the ${targetLabel}. Nothing spread — there was no ${label} on the knife.`;
   }
   const hand = acquireHand(jar.position);
   await handTo(hand, topOf(jar), 0.5);
@@ -772,7 +903,7 @@ async function spreadOn(kind, target, targetLabel, mentionsKnife) {
   target.userData.spreads[kind].visible = true;
   target.userData.state.spread = kind;
   await handHome(hand);
-  return `*smears ${label} on the ${targetLabel} with my fingers* You did not mention the knife.`;
+  return `Smeared ${label} on the ${targetLabel} with my fingers — you never said knife.`;
 }
 
 async function flipSlice(slice, sliceLabel) {
@@ -785,7 +916,7 @@ async function flipSlice(slice, sliceLabel) {
   await tween(slice, { rot: new THREE.Euler(newFaceUp ? 0 : Math.PI, slice.rotation.y, 0) }, 0.4);
   await tween(slice, { pos: new THREE.Vector3(slice.position.x, 0.018, slice.position.z) }, 0.3);
   slice.userData.state.faceUp = newFaceUp;
-  return `*flips the ${sliceLabel} over* The ${slice.userData.state.spread ? slice.userData.state.spread === 'pb' ? 'peanut butter' : 'jelly' : 'top'} side now faces ${newFaceUp ? 'up' : 'down'}.`;
+  return `Flipped the ${sliceLabel} over. The ${slice.userData.state.spread ? slice.userData.state.spread === 'pb' ? 'peanut butter' : 'jelly' : 'top'} side now faces ${newFaceUp ? 'up' : 'down'}.`;
 }
 
 function winConfetti(at) {
@@ -824,7 +955,7 @@ function sandwichVerdict(top, bottom) {
 async function stackSlices(top, bottom, topLabel, bottomLabel) {
   const t = topOf(bottom);
   await carry(top, new THREE.Vector3(t.x, t.y + baseOffset(top), t.z));
-  return `*puts the ${topLabel} on top of the ${bottomLabel}*` + sandwichVerdict(top, bottom);
+  return `Put the ${topLabel} on top of the ${bottomLabel}.` + sandwichVerdict(top, bottom);
 }
 
 async function takeSlicesOut() {
@@ -835,7 +966,7 @@ async function takeSlicesOut() {
     await tween(hand, { pos: hand.position.clone().add(new THREE.Vector3(0, -0.03, 0)) }, 0.25);
     await tween(hand, { pos: hand.position.clone().add(new THREE.Vector3(0, 0.03, 0)) }, 0.25);
     await handHome(hand);
-    return "*pats the bag* It is sealed. You haven't said to open it.";
+    return "The bag is still sealed — you haven't said to open it.";
   }
   const raws = bag.userData.loafSlices.slice(-2);
   if (!raws.length) return 'The bag is empty.';
@@ -850,7 +981,7 @@ async function takeSlicesOut() {
     promoteSlice(raw, rz);
     i++;
   }
-  return '*takes two slices out of the bag*';
+  return 'Took two slices out of the bag.';
 }
 
 async function shake(obj, label) {
@@ -870,9 +1001,9 @@ async function shake(obj, label) {
   scene.attach(obj);
   await Promise.all([tween(obj, { pos: start }, 0.5, { arc: 0.08 }), handHome(hand)]);
   obj.quaternion.copy(startQuat);
-  if (isShaker) return `*shakes the ${label} over the counter* You did not say where.`;
-  if (obj === objects.jellyJar && !obj.userData.state.open) return `*shakes the ${label}*`;
-  return `*shakes the ${label}*`;
+  if (isShaker) return `Shook the ${label} over the counter. You did not say where.`;
+  if (obj === objects.jellyJar && !obj.userData.state.open) return `Shook the ${label}.`;
+  return `Shook the ${label}.`;
 }
 
 async function sprinkle(obj, label, target) {
@@ -889,7 +1020,7 @@ async function sprinkle(obj, label, target) {
   spawnBits(new THREE.Vector3(t.x, t.y + 0.002, t.z), obj === objects.salt ? 0xffffff : 0x222222, 12, 0.0012, 0.04);
   scene.attach(obj);
   await Promise.all([tween(obj, { pos: start }, 0.5, { arc: 0.08 }), handHome(hand)]);
-  return `*sprinkles ${label.replace(' shaker', '')} over the ${target ? target.label : 'counter'}*`;
+  return `Sprinkled ${label.replace(' shaker', '')} over the ${target ? target.label : 'counter'}.`;
 }
 
 async function drizzle(target) {
@@ -913,7 +1044,7 @@ async function drizzle(target) {
   await tween(hand, { rot: new THREE.Euler(0, 0, 0) }, 0.25);
   scene.attach(honey);
   await Promise.all([tween(honey, { pos: start }, 0.5, { arc: 0.08 }), handHome(hand)]);
-  return `*drizzles honey over the ${target ? target.label : 'counter'}*`;
+  return `Drizzled honey over the ${target ? target.label : 'counter'}.`;
 }
 
 async function squeeze(obj, label) {
@@ -925,7 +1056,7 @@ async function squeeze(obj, label) {
     await tween(hand, { pos: hand.position.clone().add(new THREE.Vector3(0, -0.02, 0)) }, 0.2);
     await tween(hand, { pos: hand.position.clone().add(new THREE.Vector3(0, 0.02, 0)) }, 0.2);
     await handHome(hand);
-    return `*squeezes the ${label}* Nothing happened.`;
+    return `Squeezed the ${label}. Nothing happened.`;
   }
   hand.attach(obj);
   const start = homes.get(obj)?.pos || obj.position.clone();
@@ -941,7 +1072,7 @@ async function squeeze(obj, label) {
     }),
     handHome(hand),
   ]);
-  return `*squeezes the ${label}* It splatted on the counter — you did not say where to aim.`;
+  return `Squeezed the ${label}. It splatted on the counter — you didn't say where to aim.`;
 }
 
 async function pour(obj, label, target) {
@@ -965,9 +1096,9 @@ async function pour(obj, label, target) {
   scene.attach(obj);
   await Promise.all([tween(obj, { pos: start }, 0.55, { arc: 0.1 }), handHome(hand)]);
   obj.quaternion.copy(startQuat);
-  if (obj === objects.cerealBox) return '*pours the cereal out onto the counter*';
-  if (obj.userData.state && !obj.userData.state.open && obj !== objects.mug) return `*tips the ${label} over* Nothing came out — it is sealed.`;
-  return `*pours the ${label}${target ? ` onto the ${target.label}` : ' onto the counter'}*`;
+  if (obj === objects.cerealBox) return 'Poured the cereal out onto the counter.';
+  if (obj.userData.state && !obj.userData.state.open && obj !== objects.mug) return `Tipped the ${label} over. Nothing came out — it is sealed.`;
+  return `Poured the ${label}${target ? ` onto the ${target.label}` : ' onto the counter'}.`;
 }
 
 async function throwThing(obj, label) {
@@ -992,7 +1123,7 @@ async function throwThing(obj, label) {
     tween(obj, { pos: land, rot: new THREE.Euler(0, Math.random() * 6, 0) }, 0.7, { arc: 0.3 }),
     handHome(hand),
   ]);
-  return `*throws the ${label}* It landed on the counter.`;
+  return `Threw the ${label}. It landed on the counter.`;
 }
 
 async function squish(obj, label) {
@@ -1008,7 +1139,7 @@ async function squish(obj, label) {
   ]);
   await handHome(hand);
   const isBread = obj.userData.spreads || obj === objects.breadBag;
-  return `*squishes the ${label} flat*`;
+  return `Squished the ${label} flat.`;
 }
 
 async function rollOver(target, label) {
@@ -1032,7 +1163,7 @@ async function rollOver(target, label) {
   scene.attach(pin);
   await Promise.all([tween(pin, { pos: start }, 0.55, { arc: 0.1 }), handHome(hand)]);
   pin.quaternion.copy(startQuat);
-  return `*rolls the rolling pin over the ${label}* It is flat now.`;
+  return `Rolled the rolling pin over the ${label}. It is flat now.`;
 }
 
 async function stab(target, label) {
@@ -1052,7 +1183,7 @@ async function stab(target, label) {
     }, 0.22),
     handHome(hand),
   ]);
-  return `*stabs the ${label}* The knife is stuck in it.`;
+  return `Stabbed the ${label}. The knife is stuck in it.`;
 }
 
 async function stir(jar, label) {
@@ -1073,14 +1204,14 @@ async function stir(jar, label) {
   }
   scene.attach(knife);
   await Promise.all([tween(knife, { pos: start, rot: new THREE.Euler(0, -0.3, 0) }, 0.5, { arc: 0.06 }), handHome(hand)]);
-  return `*stirs the ${label} with the knife*`;
+  return `Stirred the ${label} with the knife.`;
 }
 
 async function spin(obj, label) {
   ensureMovable(obj, label);
   ensureOnScene(obj);
   await tween(obj, { rot: new THREE.Euler(0, obj.rotation.y + Math.PI * 4, 0) }, 1.0);
-  return `*spins the ${label}*`;
+  return `Spun the ${label}.`;
 }
 
 async function tipOver(obj, label) {
@@ -1097,7 +1228,7 @@ async function tipOver(obj, label) {
     rot: new THREE.Euler(0, obj.rotation.y, -Math.PI / 2),
   }, 0.4);
   await handHome(hand);
-  return `*tips the ${label} over*`;
+  return `Tipped the ${label} over.`;
 }
 
 async function standUp(obj, label) {
@@ -1110,7 +1241,7 @@ async function standUp(obj, label) {
   obj.quaternion.setFromEuler(new THREE.Euler(0, obj.rotation.y, 0));
   sfx('boing');
   await handHome(hand);
-  return `*stands the ${label} up*`;
+  return `Stood the ${label} up.`;
 }
 
 async function swap(a, b, la, lb) {
@@ -1119,7 +1250,7 @@ async function swap(a, b, la, lb) {
   await carry(a, clampToCounter(new THREE.Vector3(pa.x, pa.y, pa.z + 0.12)));
   await carry(b, pa);
   await carry(a, pb);
-  return `*swaps the ${la} and the ${lb}*`;
+  return `Swapped the ${la} and the ${lb}.`;
 }
 
 async function hide(obj, label) {
@@ -1127,13 +1258,13 @@ async function hide(obj, label) {
   const bag = objects.breadBag;
   const dest = new THREE.Vector3(bag.position.x + 0.05, baseOffset(obj), bag.position.z - 0.14);
   await carry(obj, dest);
-  return `*puts the ${label} behind the bread bag*`;
+  return `Put the ${label} behind the bread bag.`;
 }
 
 async function giveMe(obj, label) {
   ensureMovable(obj, label);
   await carry(obj, new THREE.Vector3(0, baseOffset(obj), 0.30));
-  return `*slides the ${label} to the counter edge*`;
+  return `Slid the ${label} to the counter edge.`;
 }
 
 async function putBack(obj, label) {
@@ -1145,7 +1276,7 @@ async function putBack(obj, label) {
   await carry(obj, h.pos);
   obj.quaternion.copy(h.quat);
   await tween(obj, { scale: h.scale }, 0.3);
-  return `*puts the ${label} back*`;
+  return `Put the ${label} back.`;
 }
 
 async function juggle() {
@@ -1164,7 +1295,7 @@ async function juggle() {
     tween(a, { pos: clampToCounter(new THREE.Vector3(-0.2 + Math.random() * 0.1, baseOffset(a), 0.25)) }, 0.3, { arc: 0.08 }),
     tween(b, { pos: clampToCounter(new THREE.Vector3(0.15 + Math.random() * 0.1, baseOffset(b), 0.24)) }, 0.35, { arc: 0.1 }),
   ]);
-  return `*juggles the ${la} and the ${lb}* Dropped both.`;
+  return `Juggled the ${la} and the ${lb}. Dropped both.`;
 }
 
 async function tearThing(target, label) {
@@ -1192,7 +1323,7 @@ async function tearThing(target, label) {
     tween(target, { scale: sq, pos: target.position.clone().add(new THREE.Vector3(-0.03, 0, 0)) }, 0.3),
     handHome(hand),
   ]);
-  return `*tears the ${label} in half*`;
+  return `Tore the ${label} in half.`;
 }
 
 async function foldThing(target, label) {
@@ -1204,7 +1335,7 @@ async function foldThing(target, label) {
   await handTo(hand, topOf(target), 0.5, 0.03);
   const folded = target.scale.clone(); folded.z *= 0.52; folded.y *= 1.9;
   await Promise.all([tween(target, { scale: folded }, 0.4), handHome(hand)]);
-  return `*folds the ${label} over*`;
+  return `Folded the ${label} over.`;
 }
 
 async function biteThing(target, label) {
@@ -1216,7 +1347,7 @@ async function biteThing(target, label) {
   const sq = target.scale.clone(); sq.x *= 0.88; sq.z *= 0.88;
   await tween(target, { scale: sq }, 0.25);
   await handHome(hand);
-  return `*bites the ${label}*`;
+  return `Bit the ${label}.`;
 }
 
 async function useOn(toolThing, targetThing, s) {
@@ -1243,11 +1374,11 @@ async function useOn(toolThing, targetThing, s) {
       tween(objects.whisk, { pos: start || clampToCounter(new THREE.Vector3(t.x + 0.12, 0, t.z + 0.1)), rot: new THREE.Euler(0, 0, 0) }, 0.4),
       handHome(hand),
     ]);
-    return `*whisks the ${targetThing.label}*`;
+    return `Whisked the ${targetThing.label}.`;
   }
   if (tool === objects.spatula && target.userData?.spreads) {
     await flipSlice(target, targetThing.label);
-    return `*flips the ${targetThing.label} with the spatula*`;
+    return `Flipped the ${targetThing.label} with the spatula.`;
   }
   return rubJarOn(tool, target, toolThing.label, targetThing.label);
 }
@@ -1261,7 +1392,7 @@ async function pokeThing(obj, label) {
     await tween(hand, { pos: hand.position.clone().add(new THREE.Vector3(0, 0.03, 0)) }, 0.15);
   }
   await handHome(hand);
-  return `*pokes the ${label}*`;
+  return `Poked the ${label}.`;
 }
 
 async function slapThing(obj, label) {
@@ -1275,7 +1406,7 @@ async function slapThing(obj, label) {
     tween(obj, { pos: dest }, 0.18),
   ]);
   await handHome(hand);
-  return `*slaps the ${label}* It slid sideways.`;
+  return `Slapped the ${label}. It slid sideways.`;
 }
 
 async function sniff(obj, label) {
@@ -1283,7 +1414,7 @@ async function sniff(obj, label) {
   await handTo(hand, topOf(obj), 0.5);
   await wait(500);
   await handHome(hand);
-  return `*sniffs the ${label}*`;
+  return `Sniffed the ${label}.`;
 }
 
 async function wipeClean() {
@@ -1298,7 +1429,7 @@ async function wipeClean() {
   for (const bit of state.looseBits) bit.removeFromParent();
   state.looseBits = [];
   await handHome(l);
-  return n ? `*wipes the counter* Cleaned up ${n} bits.` : '*wipes the counter* It was already clean.';
+  return n ? `Wiped the counter. Cleaned up ${n} bits.` : 'Wiped the counter. It was already clean.';
 }
 
 async function lookAt(obj, label) {
@@ -1309,7 +1440,7 @@ async function lookAt(obj, label) {
     tween(camDummy, { pos: c }, 0.9),
   ]);
   controls.update();
-  return `*looks at the ${label}* (Say "zoom out" to go back.)`;
+  return `Zoomed in on the ${label}. (Say "zoom out" to go back.)`;
 }
 
 async function zoomOut() {
@@ -1319,7 +1450,7 @@ async function zoomOut() {
     tween(camDummy, { pos: new THREE.Vector3(0, 0.18, -0.05) }, 0.9),
   ]);
   controls.update();
-  return '*zooms out*';
+  return 'Zoomed back out.';
 }
 
 async function danceParty() {
@@ -1336,7 +1467,7 @@ async function danceParty() {
     await tween(r, { pos: r.position.clone().add(new THREE.Vector3(0, -0.1, 0)) }, 0.2);
   }
   await Promise.all([handHome(l), handHome(r)]);
-  return '*dances*';
+  return 'Danced.';
 }
 
 async function clap() {
@@ -1357,7 +1488,7 @@ async function clap() {
     ]);
   }
   await Promise.all([handHome(l), handHome(r)]);
-  return '*claps*';
+  return 'Clapped.';
 }
 
 async function washHands() {
@@ -1382,7 +1513,7 @@ async function washHands() {
     ]);
   }
   await Promise.all([handHome(l), handHome(r)]);
-  return '*rubs hands together* There is no sink.';
+  return 'Rubbed my hands together. There is no sink.';
 }
 
 async function highFive() {
@@ -1390,7 +1521,7 @@ async function highFive() {
   await tween(r, { pos: new THREE.Vector3(0.16, 0.25, 0.30), rot: new THREE.Euler(-1.2, 0, 0) }, 0.5);
   await wait(1200);
   await handHome(r);
-  return '*holds a hand up for a high five*';
+  return 'Held a hand up for a high five.';
 }
 
 async function cutThing(target, label) {
@@ -1412,7 +1543,7 @@ async function cutThing(target, label) {
     tween(knife, { pos: start, rot: new THREE.Euler(0, -0.35, 0) }, 0.5, { arc: 0.06 }),
     handHome(hand),
   ]);
-  return `*saws at the ${label}* The butter knife did not cut much.`;
+  return `Sawed at the ${label}. The butter knife did not cut much.`;
 }
 
 async function eat(targetThing) {
@@ -1421,7 +1552,7 @@ async function eat(targetThing) {
     const obj = targetThing.obj;
     await carry(obj, new THREE.Vector3(0, baseOffset(obj), 0.28));
     await wait(400);
-    return `*eats the ${targetThing.label}*`;
+    return `Ate the ${targetThing.label}.`;
   }
   const target = sortedSlices()[0];
   if (!target) return 'Nothing is out to eat — the bread is in the bag.';
@@ -1429,8 +1560,280 @@ async function eat(targetThing) {
   await wait(400);
   await Promise.all([handHome(l), handHome(r)]);
   return state.sandwichDone
-    ? '*takes a bite* A perfect PB&J.'
+    ? 'Took a bite. A perfect PB&J.'
     : "It isn't a sandwich yet.";
+}
+
+// ---------- literal misinterpretation gags ----------
+
+// "take a PIECE of bread" — a piece is not a slice. Tear a small nub off a slice
+// (or off the loaf inside the bag) and present it.
+async function takePieceOfBread() {
+  const bag = objects.breadBag;
+  // prefer a slice already out; otherwise pull from the loaf in the bag
+  let source = sortedSlices()[0];
+  if (!source) {
+    if (!bag.userData.state.open) {
+      await pokeThing(bag, 'bag of bread');
+      return "The bag is still sealed — I can't pinch a piece out of a closed bag.";
+    }
+    // tear a nub straight off the loaf still in the bag
+    const t = topOf(bag);
+    const hand = acquireHand(bag.position);
+    await handTo(hand, t, 0.5, 0.02);
+    sfx('rip');
+    const piece = makeBlob(0xe8cfa0, 0.012);
+    piece.scale.set(1.1, 0.7, 0.9);
+    piece.position.set(bag.position.x + 0.14, 0.012, bag.position.z + 0.2);
+    scene.add(piece);
+    state.looseBits.push(piece);
+    await handHome(hand);
+    return 'Pinched a piece off the loaf — you said a piece, not a slice.';
+  }
+  ensureOnScene(source);
+  const sLabel = sliceLabelFor(source);
+  const hand = acquireHand(source.position);
+  await handTo(hand, topOf(source), 0.5, 0.02);
+  sfx('rip');
+  // the slice shrinks a hair; a crumb-sized piece appears beside it
+  const sq = source.scale.clone(); sq.x *= 0.92;
+  const piece = makeBlob(0xe8cfa0, 0.011);
+  piece.scale.set(1.1, 0.6, 0.95);
+  piece.position.set(source.position.x + 0.06, 0.011, source.position.z + 0.05);
+  scene.add(piece);
+  state.looseBits.push(piece);
+  await Promise.all([
+    tween(source, { scale: sq }, 0.3),
+    handHome(hand),
+  ]);
+  return `Tore a piece off the ${sLabel} — you said a piece, not a slice.`;
+}
+
+// "scoop a LITTLE jelly out of the jar" — produce a comically tiny dab.
+async function scoopTiny(kind) {
+  const jarName = kind === 'pb' ? 'peanutButterJar' : 'jellyJar';
+  const jar = objects[jarName];
+  const label = kind === 'pb' ? 'peanut butter' : 'jelly';
+  if (!jar.userData.state.open) {
+    await pokeThing(jar, `jar of ${label}`);
+    return `The ${label} jar is closed — nothing to scoop out of a sealed jar.`;
+  }
+  const t = topOf(jar);
+  const hand = acquireHand(jar.position);
+  await handTo(hand, t, 0.5, 0.03);
+  const dip = hand.position.clone(); dip.y -= 0.04;
+  await tween(hand, { pos: dip }, 0.25);
+  await tween(hand, { pos: dip.clone().add(new THREE.Vector3(0, 0.04, 0)) }, 0.25);
+  // a single, absurdly small dab next to the jar
+  const dab = makeBlob(kind === 'pb' ? 0xb97f3e : 0x8e2c80, 0.0035);
+  dab.scale.set(1, 0.6, 1);
+  dab.position.set(jar.position.x + 0.08, 0.004, jar.position.z + 0.06);
+  scene.add(dab);
+  state.looseBits.push(dab);
+  sfx('squish');
+  await handHome(hand);
+  return `Scooped out a little ${label} — about as little as physically possible.`;
+}
+
+// "scoop out some peanut butter" with NO tool — use a bare hand, fingers in.
+async function scoopBareHand(kind) {
+  const jarName = kind === 'pb' ? 'peanutButterJar' : 'jellyJar';
+  const jar = objects[jarName];
+  const label = kind === 'pb' ? 'peanut butter' : 'jelly';
+  if (!jar.userData.state.open) {
+    await pokeThing(jar, `jar of ${label}`);
+    return `The ${label} jar is closed — I can't get a hand in there.`;
+  }
+  const t = topOf(jar);
+  const hand = acquireHand(jar.position);
+  await handTo(hand, t, 0.5, 0.02);
+  // plunge the whole hand in
+  const down = hand.position.clone(); down.y -= 0.06;
+  await tween(hand, { pos: down }, 0.3);
+  sfx('squish');
+  await wait(200);
+  await tween(hand, { pos: down.clone().add(new THREE.Vector3(0, 0.06, 0)) }, 0.3);
+  // a fingerful sits on the counter beside the jar
+  const glob = makeBlob(kind === 'pb' ? 0xb97f3e : 0x8e2c80, 0.012);
+  glob.scale.set(1, 0.55, 1.1);
+  glob.position.set(jar.position.x + 0.09, 0.006, jar.position.z + 0.07);
+  scene.add(glob);
+  state.looseBits.push(glob);
+  await handHome(hand);
+  return `Scooped out some ${label} with my bare hand — you didn't name a tool.`;
+}
+
+// "use the knife to scoop out some peanut butter, then put IT on the bread" —
+// "it" = the knife. Scoop with the wrong (handle) end, then lay the whole knife
+// on a slice, glob and all.
+async function scoopThenLayKnife(kind) {
+  const knife = objects.knife;
+  const jarName = kind === 'pb' ? 'peanutButterJar' : 'jellyJar';
+  const jar = objects[jarName];
+  const label = kind === 'pb' ? 'peanut butter' : 'jelly';
+  ensureOnScene(knife);
+  if (!jar.userData.state.open) {
+    await pokeThing(jar, `jar of ${label}`);
+    return `The ${label} jar is closed — can't scoop from a sealed jar.`;
+  }
+  const t = topOf(jar);
+  const hand = acquireHand(knife.position);
+  await handTo(hand, topOf(knife), 0.45);
+  hand.attach(knife);
+  // dip the HANDLE end in (wrong end) — drop the blade-end blob onto the handle
+  await tween(hand, { pos: new THREE.Vector3(t.x, t.y + 0.10, t.z) }, 0.55, { arc: 0.1 });
+  const dn = hand.position.clone(); dn.y -= 0.06;
+  await tween(hand, { pos: dn }, 0.25);
+  await tween(hand, { pos: dn.clone().add(new THREE.Vector3(0, 0.06, 0)) }, 0.25);
+  if (state.knifeBlob) state.knifeBlob.mesh.removeFromParent();
+  const blob = makeBlob(kind === 'pb' ? 0xb97f3e : 0x8e2c80, 0.012);
+  blob.scale.set(1, 0.55, 1.2);
+  blob.position.set(-0.075, 0.006, 0); // handle end
+  knife.add(blob);
+  state.knifeBlob = { mesh: blob, kind };
+  sfx('squish');
+  // now lay the WHOLE knife flat on a slice ("put it on the bread")
+  const slice = sortedSlices()[0];
+  scene.attach(knife);
+  if (!slice) {
+    await Promise.all([
+      tween(knife, { pos: new THREE.Vector3(0.2, 0.003, 0.16), rot: new THREE.Euler(0, -0.3, 0) }, 0.5, { arc: 0.08 }),
+      handHome(hand),
+    ]);
+    return `Scooped ${label} with the handle end — but there's no bread out, so the knife's on the counter.`;
+  }
+  const sTop = topOf(slice);
+  hand.attach(knife);
+  await tween(hand, { pos: new THREE.Vector3(sTop.x, sTop.y + 0.06, sTop.z) }, 0.55, { arc: 0.1 });
+  scene.attach(knife);
+  const rest = new THREE.Vector3(sTop.x, sTop.y + baseOffset(knife), sTop.z);
+  await Promise.all([
+    tween(knife, { pos: rest, rot: new THREE.Euler(0, slice.rotation.y, 0) }, 0.3).then(() => sfx('thud')),
+    handHome(hand),
+  ]);
+  return `Laid the whole knife on the ${sliceLabelFor(slice)} — you said put "it" on the bread, and "it" was the knife.`;
+}
+
+// "spread the peanut butter and the jelly on different slices" — "the peanut
+// butter" / "the jelly" read as THE JARS. Set each jar on its own slice.
+async function jarsOnDifferentSlices() {
+  const sl = sortedSlices();
+  if (sl.length < 2) {
+    return `I need two slices out for "different slices". Current count: ${sl.length}. The rest are in the bag.`;
+  }
+  const left = sl[0], right = sl[sl.length - 1];
+  const pb = objects.peanutButterJar, jelly = objects.jellyJar;
+  // peanut butter jar onto the left slice
+  let lt = topOf(left);
+  await carry(pb, new THREE.Vector3(lt.x, lt.y + baseOffset(pb), lt.z));
+  const lsq = left.scale.clone(); lsq.y = Math.max(left.scale.y * 0.55, 0.25);
+  await tween(left, { scale: lsq }, 0.2);
+  // jelly jar onto the right slice
+  let rt = topOf(right);
+  await carry(jelly, new THREE.Vector3(rt.x, rt.y + baseOffset(jelly), rt.z));
+  const rsq = right.scale.clone(); rsq.y = Math.max(right.scale.y * 0.55, 0.25);
+  await tween(right, { scale: rsq }, 0.2);
+  return 'Put the peanut butter jar on one slice and the jelly jar on the other — different slices, like you said. The whole jars.';
+}
+
+// "spread the peanut butter on the FACE of the bread" — there is no chef face or
+// body in this scene, only two hands and the player's camera. The only "face"
+// available is yours. Smear a hand of peanut butter toward the camera.
+async function spreadOnFace(kind) {
+  const jarName = kind === 'pb' ? 'peanutButterJar' : 'jellyJar';
+  const jar = objects[jarName];
+  const label = kind === 'pb' ? 'peanut butter' : 'jelly';
+  const hand = objects.rightHand;
+  if (state.held.rightHand) {
+    throw new CantDo(`My right hand is holding the ${state.heldLabels.rightHand} — I can't smear with it.`);
+  }
+  if (jar.userData.state.open) {
+    // load the hand from the jar first
+    const t = topOf(jar);
+    await handTo(hand, t, 0.5, 0.02);
+    const dn = hand.position.clone(); dn.y -= 0.05;
+    await tween(hand, { pos: dn }, 0.25);
+    await tween(hand, { pos: dn.clone().add(new THREE.Vector3(0, 0.05, 0)) }, 0.25);
+    sfx('squish');
+  }
+  // lunge the hand toward the camera (the only face here), smear, retreat.
+  const camPos = camera ? camera.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(0.5, 0.55, 0.95);
+  const toward = new THREE.Vector3(0.1, 0.35, 0.5); // up and out toward the viewer, within bounds
+  toward.x = Math.max(-0.4, Math.min(0.4, camPos.x * 0.2));
+  await tween(hand, { pos: toward }, 0.55, { arc: 0.05 });
+  for (let i = 0; i < 2; i++) {
+    await tween(hand, { pos: toward.clone().add(new THREE.Vector3(0.04, 0.02, 0)) }, 0.18);
+    await tween(hand, { pos: toward.clone().add(new THREE.Vector3(-0.04, -0.02, 0)) }, 0.18);
+  }
+  await handHome(hand);
+  return jar.userData.state.open
+    ? `Spread ${label} on the only face in this kitchen — yours.`
+    : `Went for the only face in this kitchen — yours — but the jar's closed, so mostly it was the gesture.`;
+}
+
+// "cut the sandwich into two pieces" with no sizes — one absurdly tiny sliver,
+// one huge remainder.
+async function cutLopsided(target, label) {
+  ensureOnScene(target);
+  const knife = objects.knife;
+  ensureOnScene(knife);
+  const t = topOf(target);
+  const start = knife.position.clone();
+  const hand = acquireHand(knife.position);
+  await handTo(hand, topOf(knife), 0.45);
+  hand.attach(knife);
+  // saw way off to one edge — a sliver, not the middle
+  const edgeX = t.x + 0.055;
+  await tween(hand, { pos: new THREE.Vector3(edgeX, t.y + 0.06, t.z) }, 0.5);
+  sfx('saw');
+  for (let i = 0; i < 3; i++) {
+    await tween(hand, { pos: new THREE.Vector3(edgeX, t.y + 0.03, t.z + 0.02) }, 0.18);
+    await tween(hand, { pos: new THREE.Vector3(edgeX, t.y + 0.05, t.z - 0.02) }, 0.18);
+  }
+  scene.attach(knife);
+  // a tiny sliver splits off; the original keeps almost all its width
+  const sliver = makeBlob(0xe8cfa0, 0.01);
+  sliver.scale.set(0.6, 0.5, 1.4);
+  sliver.position.set(edgeX + 0.04, 0.008, t.z);
+  scene.add(sliver);
+  state.looseBits.push(sliver);
+  if (target.userData?.spreads) {
+    const sq = target.scale.clone(); sq.x *= 0.9;
+    await tween(target, { scale: sq, pos: target.position.clone().add(new THREE.Vector3(-0.01, 0, 0)) }, 0.25);
+  }
+  await Promise.all([
+    tween(knife, { pos: start, rot: new THREE.Euler(0, -0.35, 0) }, 0.5, { arc: 0.06 }),
+    handHome(hand),
+  ]);
+  return `Cut the ${label} into two pieces — one tiny sliver, one enormous rest. You didn't say equal.`;
+}
+
+// "take the jelly" with bare "take" and no destination — pick up the jar and
+// steal it: slide it off the counter edge out of view, pause, then sheepishly
+// bring it back. Ends settled, in bounds.
+async function stealAndReturn(obj, label) {
+  ensureMovable(obj, label);
+  const home = obj.position.clone();
+  const homeQuat = obj.quaternion.clone();
+  takeFromHands(obj);
+  const hand = acquireHand(obj.getWorldPosition(new THREE.Vector3()));
+  await handTo(hand, topOf(obj), 0.5);
+  hand.attach(obj);
+  sfx('tap');
+  // slink it toward the front-right edge of the counter and "off" (down below it)
+  const edge = new THREE.Vector3(COUNTER.x, topOf(obj).y, COUNTER.zMax);
+  await tween(hand, { pos: edge }, 0.6, { arc: 0.06 });
+  scene.attach(obj);
+  // dip just below the counter lip — still finite, mid-animation excursion only
+  const ducked = new THREE.Vector3(COUNTER.x, -0.12, COUNTER.zMax + 0.02);
+  await tween(obj, { pos: ducked }, 0.4);
+  await handHome(hand);
+  sfx('sad');
+  await wait(700);
+  // ...caught. bring it back home, settled and in bounds.
+  await carry(obj, home);
+  obj.quaternion.copy(homeQuat);
+  return `Took the ${label}. Walked it right off the counter… then thought better of it and put it back.`;
 }
 
 // ---------- the literal parser ----------
@@ -1458,13 +1861,22 @@ async function perform(prompt, heard, action) {
   return did;
 }
 
-export async function instruct(raw) {
-  if (state.busy) return 'Still doing the last thing.';
-  state.busy = true;
+// When a server-translated sequence is running, the dispatcher owns the busy
+// guard for the whole batch; individual instruct() calls don't re-acquire it.
+let sequenceActive = false;
+
+export async function instruct(raw, displayPrompt) {
+  if (!sequenceActive) {
+    if (state.busy) return 'Still doing the last thing.';
+    state.busy = true;
+  }
   try {
-    const s = raw.toLowerCase().replace(/[.,!?'"]/g, ' ').replace(/\s+/g, ' ').trim();
+    const s = fixTypos(raw.toLowerCase().replace(/[.,!?'"]/g, ' ').replace(/\s+/g, ' ').trim());
     if (!s) return speak('Say an instruction.');
-    const P = (heard, action) => perform(raw, heard, action);
+    // raw drives parsing; displayPrompt (if given) is what the log shows — used
+    // by the server dispatcher to surface "free text → canonical command".
+    const shown = displayPrompt || raw;
+    const P = (heard, action) => perform(shown, heard, action);
 
     if (/^help|what can (you|i)|how do i play|what (verbs|words)/.test(s)) {
       openHelp();
@@ -1473,6 +1885,81 @@ export async function instruct(raw) {
 
     if (/zoom out|look at everything|reset (the )?view|show me everything/.test(s)) {
       return P('Directive: retreat. Showing the full battlefield.', zoomOut);
+    }
+
+    // ---------- literal-misinterpretation gags (intercept vague phrasings
+    // BEFORE the generic handlers; precise phrasings fall through untouched) ----------
+
+    // GAG: "take/get a PIECE of bread out of the bag" — a piece is not a slice.
+    // ("take a SLICE out of the bag" still falls through to takeSlicesOut.)
+    if (/(take|get|grab|pull|tear|pinch)\b.*\bpiece of (bread|toast)\b/.test(s)
+        && !/\bslice/.test(s)) {
+      return P('Directive: produce a "piece" of bread. Definition consulted: piece ≠ slice.', takePieceOfBread);
+    }
+
+    // GAG: "scoop ... out of the jar" with NO knife. (With a knife it loads the
+    // knife via the existing dip handler.) "a little / a bit / tiny" => tiny dab;
+    // otherwise => bare-hand scoop, since no tool was named.
+    if (/\bscoop\b/.test(s) && !/knife|spoon|spatula/.test(s)
+        && /(peanut|\bpb\b|jelly|jam)/.test(s)) {
+      const kind = spreadKind(s);
+      if (/\b(little|bit|tiny|small|tad|smidge|dab|teeny|teensy)\b/.test(s)) {
+        const lbl = kind === 'pb' ? 'peanut butter' : 'jelly';
+        return P(`Directive: scoop a LITTLE ${lbl}. Quantifier honored with malicious literalism.`, () => scoopTiny(kind));
+      }
+      const lbl = kind === 'pb' ? 'peanut butter' : 'jelly';
+      return P(`Directive: scoop ${lbl}. Tool specified: none. Substituting: bare hand.`, () => scoopBareHand(kind));
+    }
+
+    // GAG: "use the knife to scoop out some peanut butter, then put IT on the
+    // bread" — "it" resolves to the KNIFE. Scoop with the handle, lay the whole
+    // knife on a slice. (Beats the generic "use X on Y" and dip handlers.)
+    if (/use (the )?knife to scoop/.test(s) && /\bput it (on|onto)\b.*\b(bread|slice|toast)\b/.test(s)) {
+      const kind = spreadKind(s) || 'pb';
+      const lbl = kind === 'pb' ? 'peanut butter' : 'jelly';
+      return P(`Directive: scoop ${lbl} with knife, then put "it" on bread. Antecedent of "it": the knife. Confirmed.`, () => scoopThenLayKnife(kind));
+    }
+
+    // GAG: "spread the peanut butter and the jelly on different slices" — read
+    // "the peanut butter"/"the jelly" as THE JARS; set each jar on its own slice.
+    if (/spread\b/.test(s) && /peanut/.test(s) && /(jelly|jam)/.test(s)
+        && /\bdifferent\b.*slices?\b/.test(s)) {
+      return P('Directive: spread peanut butter AND jelly on different slices. Parsing "the peanut butter"/"the jelly" as the jars. Deploying jars.', jarsOnDifferentSlices);
+    }
+
+    // GAG: "spread the peanut butter on the FACE of the bread" — no chef face
+    // exists; the only face is the player's. Smear toward the camera.
+    // Only the VAGUE, tool-less phrasing gets the gag: if a spreading tool is
+    // named (knife/spatula/spoon), "face of the bread" means a slice's upward
+    // face — fall through to the normal spread handler (which targets a slice).
+    if (/(spread|smear|slather)\b/.test(s) && /\bface\b/.test(s)
+        && /(peanut|\bpb\b|jelly|jam)/.test(s)
+        && !/\b(knife|spatula|spoon)\b/.test(s)) {
+      const kind = spreadKind(s) || 'pb';
+      const lbl = kind === 'pb' ? 'peanut butter' : 'jelly';
+      return P(`Directive: spread ${lbl} on a face. Faces located in scene: 1 (yours). Approaching.`, () => spreadOnFace(kind));
+    }
+
+    // GAG: "cut the sandwich into two pieces" (no sizes) — one tiny, one huge.
+    // ("cut ... in half down the middle" / "in half" still gets a clean cut.)
+    if (/\b(cut|saw|slice)\b.*\b(into|in)\b.*\b(two|2)\b.*\bpieces?\b/.test(s)
+        && !/\b(half|halves|equal|even|middle)\b/.test(s)) {
+      const X = R(s) || (sortedSlices().length ? { obj: sortedSlices()[0], label: 'sandwich' } : null);
+      if (!X || X.missing) return speak(NO_SLICES);
+      return P(`Directive: cut into two pieces. Sizes: unspecified. Choosing: one tiny, one enormous.`, () => cutLopsided(X.obj, X.label));
+    }
+
+    // GAG: bare "take the jelly/peanut butter/<thing>" with no destination — a
+    // literal lone "take" reads as theft. Steal it off the counter, then return.
+    // (Guards: not "take ... out/off/lid", not the piece-of-bread gag above,
+    // not "take a slice".)
+    if (/^take\b/.test(s)
+        && !/(out|off|lid|piece|slice|bite|picture|photo|look|turn|over|apart|away)\b/.test(s)) {
+      const X = R(s.replace(/^take( the| a| some)?/, ''));
+      if (X?.missing) return speak(NO_SLICES);
+      if (X && X.obj) {
+        return P(`Directive: TAKE the ${X.label}. No destination given. Interpreting "take" in the criminal sense.`, () => stealAndReturn(X.obj, X.label));
+      }
     }
 
     // open (incl. "take the lid off", "unscrew")
@@ -1494,7 +1981,7 @@ export async function instruct(raw) {
           const jar = objects[c.name];
           await pokeThing(jar, c.word);
           if (jar.userData.state) jar.userData.state.open = true;
-          return `*loosens the ${c.word} lid* Open.`;
+          return `Loosened the ${c.word} lid. It is open.`;
         });
       }
       if (/jar/.test(what)) return P('Directive: OPEN "the jar". Ambiguity detected. Resolving by personal preference.', async () => (await openJar(state.lastJar)) + ' (You did not say which jar.)');
@@ -1649,7 +2136,7 @@ export async function instruct(raw) {
     if (m) {
       if (/hands?$/.test(s)) return P('Directive: HANDSHAKE. Formal greetings: initiated.', async () => {
         await wiggle(objects.rightHand, 0.015, 3, 0.1);
-        return '*shakes my own hand*';
+        return 'Shook my own hand.';
       });
       const X = R(m[1]);
       if (X?.missing) return speak(NO_SLICES);
@@ -1807,7 +2294,7 @@ export async function instruct(raw) {
           await handTo(hand, topOf(X.obj), 0.5, 0.02);
           await tween(X.obj, { pos: clampToCounter(X.obj.position.clone().add(dir)) }, 0.4);
           await handHome(hand);
-          return `*pushes the ${X.label}*`;
+          return `Pushed the ${X.label}.`;
         });
       }
       return speak('Push what?');
@@ -1820,7 +2307,12 @@ export async function instruct(raw) {
       if (X?.missing) return speak(NO_SLICES);
       if (X) {
         const Xs = X.plural ? { obj: X.objs[0], label: X.label } : X;
-        return P(`Directive: ACQUIRE the ${Xs.label}. Holding indefinitely. Next steps: unknown. You did not say.`, () => grab(Xs.obj, Xs.label));
+        // one-time literal-noun quips, delivered only here at the moment of grab:
+        // "the bread" => the whole bag; "butter" => the dish, not the spread.
+        let quip = '';
+        if (Xs.obj === objects.breadBag && /bread/.test(m[2]) && !/bag|loaf/.test(m[2])) quip = ' The whole bag — that IS the bread.';
+        else if (Xs.obj === objects.butterDish && /butter/.test(m[2])) quip = ' Real butter — you said butter.';
+        return P(`Directive: ACQUIRE the ${Xs.label}. Holding indefinitely. Next steps: unknown. You did not say.`, async () => (await grab(Xs.obj, Xs.label)) + quip);
       }
       return speak('Grab what? I know: bread, bag, slices, peanut butter, jelly, knife, plate, and the shelf items (mustard, ketchup, mayo, honey, butter, banana, apple, salt, pepper, cereal, mug, whisk, spatula, rolling pin).');
     }
@@ -1860,8 +2352,8 @@ export async function instruct(raw) {
       if (X?.missing) return speak(NO_SLICES);
       if (X) return P(`Directive: ${verb.toUpperCase()} the ${X.label}. Health code: not consulted.`, async () => {
         await pokeThing(X.obj, X.label);
-        if (verb === 'kiss') return `*kisses the ${X.label}*`;
-        return `*${verb}s the ${X.label}*`;
+        if (verb === 'kiss') return `Kissed the ${X.label}.`;
+        return `Gave the ${X.label} a ${verb}.`;
       });
       return speak(`${m[1][0].toUpperCase() + m[1].slice(1)} what?`);
     }
@@ -1873,7 +2365,7 @@ export async function instruct(raw) {
       if (X?.missing) return speak(NO_SLICES);
       if (X) return P(`Directive: GENTLE AFFECTION for the ${X.label}.`, async () => {
         await pokeThing(X.obj, X.label);
-        return `*pats the ${X.label}*`;
+        return `Patted the ${X.label}.`;
       });
     }
 
@@ -1904,7 +2396,7 @@ export async function instruct(raw) {
         await handTo(hand, topOf(X.obj), 0.5, 0.07);
         await wait(700);
         await handHome(hand);
-        return `*points at the ${X.label}*`;
+        return `Pointed at the ${X.label}.`;
       });
     }
 
@@ -1928,7 +2420,7 @@ export async function instruct(raw) {
       if (X?.missing) return speak(NO_SLICES);
       if (X) return P(`Directive: ESTIMATE the mass of the ${X.label}. Equipment: vibes.`, async () => {
         await pokeThing(X.obj, X.label);
-        return `*hefts the ${X.label}* About one banana's worth.`;
+        return `Hefted the ${X.label}. About one banana's worth.`;
       });
     }
 
@@ -1941,25 +2433,25 @@ export async function instruct(raw) {
     }
 
     // ambient verbs
-    if (/\bwave\b/.test(s)) return P('Directive: WAVE. Recipient: unclear. Waving at the bread.', async () => { await wiggle(objects.rightHand, 0.02, 3, 0.1); return '*waves*'; });
+    if (/\bwave\b/.test(s)) return P('Directive: WAVE. Recipient: unclear. Waving at the bread.', async () => { await wiggle(objects.rightHand, 0.02, 3, 0.1); return 'Waved at the bread.'; });
     if (/\bclap\b|applaud/.test(s)) return P('Directive: APPLAUSE. Checking hand availability first…', clap);
     if (/dance|boogie|party/.test(s)) return P('Directive: DANCE. Sandwich progress: paused. Groove: initiated.', danceParty);
     if (/wash (your |my )?hands/.test(s)) return P('Directive: WASH hands. Available sink: none. Improvising.', washHands);
     if (/high five|high-five/.test(s)) return P('Directive: HIGH FIVE. Waiting for contact…', highFive);
-    if (/\bwait\b|pause|hold on|do nothing|stand still/.test(s)) return P('Directive: NOTHING. Executing flawlessly.', async () => { await wait(1500); return '*waits*'; });
+    if (/\bwait\b|pause|hold on|do nothing|stand still/.test(s)) return P('Directive: NOTHING. Executing flawlessly.', async () => { await wait(1500); return 'Waited. Did nothing.'; });
     if (/toast/.test(s)) return P('Directive: TOAST the bread. Toaster provided: none. Engaging ambient thermal radiation.', async () => {
       const sl = sortedSlices()[0];
       if (!sl) return 'No slices are out to toast.';
       await grab(sl, 'slice');
       await wait(800);
       await releaseHeld();
-      return '*holds the slice up to the light* There is no toaster.';
+      return 'Held the slice up to the light. There is no toaster.';
     });
     if (/drink|sip/.test(s)) return P('Directive: DRINK. Vessel: the mug. Contents: confidence.', async () => {
       await carry(objects.mug, new THREE.Vector3(0.08, baseOffset(objects.mug), 0.26));
       await wait(500);
       await putBack(objects.mug, 'mug');
-      return '*sips from the empty mug* It is empty.';
+      return 'Sipped from the mug. It is empty.';
     });
     if (/eat|chomp|nom/.test(s)) {
       const X = R(s);
@@ -1973,11 +2465,61 @@ export async function instruct(raw) {
       : 'I did not recognize an action or an object in that.';
     return P(
       `Directive: "${raw}" → unparseable. Action taken: intense staring.`,
-      async () => `*stares* ${why} (See the ❓ Help menu for hints.)`,
+      async () => `Stared blankly. ${why} (See the ❓ Help menu for hints.)`,
     );
   } finally {
+    if (!sequenceActive) state.busy = false;
+  }
+}
+
+// Run a free-text instruction through the optional server interpreter, then the
+// local parser. No server configured => identical to today's instruct(raw),
+// zero fetches. Server configured => show a "thinking" bubble, translate, run
+// the resulting commands sequentially through instruct(), and fall back to
+// local parsing of the raw text on any failure (null from interpret()).
+export async function dispatch(raw) {
+  pushLlmHistory(raw, '');
+  if (!serverBase()) {
+    const did = await instruct(raw);
+    if (did != null) llmHistory[llmHistory.length - 1].response = did;
+    return did;
+  }
+
+  if (state.busy) return 'Still doing the last thing.';
+
+  const el = document.getElementById('speech');
+  if (el) { el.textContent = 'Hmm, let me think…'; el.style.display = 'block'; }
+
+  const commands = await interpret(raw, describeState(), llmHistory.slice(0, -1));
+
+  if (!commands) {
+    // Fallback: local parse of the raw instruction, exactly as today.
+    const did = await instruct(raw);
+    if (did != null) llmHistory[llmHistory.length - 1].response = did;
+    return did;
+  }
+
+  // The dispatcher owns the busy guard across the whole sequence.
+  state.busy = true;
+  sequenceActive = true;
+  const multi = commands.length > 1;
+  const responses = [];
+  try {
+    for (const cmd of commands) {
+      // cmd drives parsing; when >1 command, the log prompt shows the
+      // free-text → canonical translation so the player sees it.
+      const displayPrompt = multi ? `${raw} → ${cmd}` : undefined;
+      const did = await instruct(cmd, displayPrompt);
+      if (did != null) responses.push(did);
+    }
+  } finally {
+    sequenceActive = false;
     state.busy = false;
   }
+  const combined = responses.join(' ');
+  // Update this turn's rolling-history entry with the combined result.
+  llmHistory[llmHistory.length - 1].response = combined;
+  return combined;
 }
 
 // ---------- wiring ----------
@@ -2007,7 +2549,7 @@ export function initGame(theScene, opts = {}) {
     promptIdx = -1;
     draft = '';
     input.value = '';
-    instruct(v);
+    dispatch(v);
   };
   btn?.addEventListener('click', go);
   input?.addEventListener('keydown', (e) => {
@@ -2071,5 +2613,5 @@ export function initGame(theScene, opts = {}) {
     mic.style.display = 'none';
   }
 
-  window.game = { instruct, state, objects };
+  window.game = { instruct, dispatch, describeState, state, objects, go };
 }
