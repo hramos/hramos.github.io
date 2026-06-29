@@ -14,12 +14,12 @@ const GradeShader = {
     tDiffuse:   { value: null },
     uTime:      { value: 0 },
     uResolution:{ value: new THREE.Vector2(1, 1) },
-    uVignette:  { value: 0.7 },   // 0 = none, 1 = heavy edge crush
-    uWarmth:    { value: -1.0 },  // negative = cold steel cast (blues up, reds down)
-    uGrain:     { value: 0.09 },  // amplitude of the film grain
-    uContrast:  { value: 0.45 },  // strength of the hard s-curve
-    uSaturation:{ value: 0.55 },  // <1 desaturates toward steel grey
-    uAberration:{ value: 0.0035 },// chromatic aberration / RGB split amount
+    uVignette:  { value: 0.4 },   // 0 = none, 1 = heavy edge crush
+    uWarmth:    { value: 0.4 },   // positive = gentle warm kitchen cast
+    uGrain:     { value: 0.04 },  // amplitude of the film grain
+    uContrast:  { value: 0.2 },   // strength of the s-curve
+    uSaturation:{ value: 0.9 },   // slightly desaturated, still colourful
+    uAberration:{ value: 0.0012 },// subtle chromatic aberration / RGB split
   },
   vertexShader: /* glsl */`
     varying vec2 vUv;
@@ -90,9 +90,8 @@ export function buildPost(renderer, scene, camera) {
 
   composer.addPass(new RenderPass(scene, camera));
 
-  // Aggressive bloom — lower threshold and higher strength so highlights bleed
-  // and the whole frame gets that blown-out, stage-lit metal glow.
-  const bloom = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.85, 0.7, 0.55);
+  // Gentle bloom — only the brighter highlights pick up a soft glow.
+  const bloom = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.35, 0.5, 0.75);
   composer.addPass(bloom);
 
   // Tone mapping + sRGB conversion for the composed result.
