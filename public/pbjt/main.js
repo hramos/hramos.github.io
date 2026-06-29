@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { buildScene, objects } from './scene.js';
 import { initGame, tickGame } from './game.js';
+import { buildPost } from './post.js';
 
 const app = document.getElementById('app');
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -25,6 +26,10 @@ const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerH
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.maxPolarAngle = Math.PI * 0.52;
+
+// Post-processing: bloom + a custom finishing shader pass (warm grade,
+// vignette, film grain). See post.js.
+const post = buildPost(renderer, scene, camera);
 
 // ---------- named inspection views ----------
 const VIEWS = {
@@ -65,6 +70,7 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  post.setSize(window.innerWidth, window.innerHeight);
 });
 
 let frames = 0;
@@ -75,7 +81,7 @@ function renderFrame() {
   const dt = Math.min(clock.getDelta(), 0.05);
   tickGame(dt);
   controls.update();
-  renderer.render(scene, camera);
+  post.render(dt);
   frames++;
   if (frames === 3) window.__ready = true;
 }
