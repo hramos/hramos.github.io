@@ -29,7 +29,8 @@ Derived from [yashjawale.github.io](https://yashjawale.github.io)
 ## Getting started
 
 - Clone this repository
-- Install dependencies with `npm i`
+- Use Node.js 20 or newer
+- Install dependencies with `npm ci`
 - Start dev server with `npm run dev`
 - Remove `<meta name="robots" content="noindex" />` tag from `src/components/BaseHead.astro` file
 - Remove `.github/workflows/deploy.yml` if not deploying to [GitHub Pages](https://docs.github.com/en/pages)
@@ -37,6 +38,13 @@ Derived from [yashjawale.github.io](https://yashjawale.github.io)
 - Update favicons & opengraph images ([realfavicongenerator.net](https://realfavicongenerator.net/) is a nice site to get the favicons cropped)
 - Update page content & images
 - Publish your site 🚀
+
+## Running as a service
+
+- Install dependencies with `npm ci`
+- Run `npm start`
+- The service builds the static site and serves `dist/` with `astro preview`
+- Set `PORT` to override the default port `4321`
 
 ## Adding a blog post
 
