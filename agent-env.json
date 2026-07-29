@@ -1,0 +1,72 @@
+{
+	"version": 1,
+	"platform": {
+		"os": "linux/amd64",
+		"memory": 8192,
+		"vcpus": 2
+	},
+	"sources": [
+		{
+			"repo": "hramos/hramos.github.io",
+			"branch": "main",
+			"auth": "token",
+			"workspace": "/workspace/hramos.github.io",
+			"identity": {
+				"name": "Wallfacer Agent",
+				"email": "agent@wallfacer.ai"
+			}
+		}
+	],
+	"setup": [
+		{
+			"name": "Install dependencies",
+			"run": "npm ci --no-audit --no-fund",
+			"working_dir": "/workspace/hramos.github.io",
+			"retries": 2,
+			"healthcheck": {
+				"command": "test -d /workspace/hramos.github.io/node_modules/astro"
+			}
+		},
+		{
+			"name": "Hand node_modules back to appuser",
+			"run": "chown -R appuser:appuser /workspace/hramos.github.io/node_modules || true",
+			"working_dir": "/workspace/hramos.github.io"
+		}
+	],
+	"services": [
+		{
+			"name": "blog",
+			"run": "npm run dev -- --host 0.0.0.0 --port 4321",
+			"working_dir": "/workspace/hramos.github.io",
+			"ports": [
+				{
+					"port": 4321,
+					"name": "web",
+					"protocol": "http"
+				}
+			],
+			"healthcheck": {
+				"url": "http://localhost:4321/",
+				"interval": "2s",
+				"timeout": "60s",
+				"retries": 30
+			}
+		}
+	],
+	"commands": {
+		"build": {
+			"run": "npm run build",
+			"working_dir": "/workspace/hramos.github.io",
+			"timeout": "10m"
+		},
+		"preview": {
+			"run": "npm run preview -- --host 0.0.0.0 --port 4322",
+			"working_dir": "/workspace/hramos.github.io"
+		},
+		"lint": {
+			"run": "npm run lint",
+			"working_dir": "/workspace/hramos.github.io",
+			"timeout": "5m"
+		}
+	}
+}
