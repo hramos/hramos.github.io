@@ -1,0 +1,86 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import GearCard from '../components/GearCard.astro'
+import { GEAR_CATEGORIES } from '../data/gear'
+
+const categories = GEAR_CATEGORIES.filter(
+	(category) => category.items.length > 0
+)
+const itemCount = categories.reduce(
+	(total, category) => total + category.items.length,
+	0
+)
+---
+
+<BaseLayout
+	title="Gear | Héctor Ramos"
+	description="Things I like and use for computing, astrophotography, coffee, and more."
+>
+	<main class="app-container pt-36">
+		<h1 class="text-6xl pb-2 font-bold">Gear</h1>
+		<p class="text-2xl max-w-2xl font-light leading-normal pt-4">
+			Things I like and use for computing, astrophotography, coffee, and more.
+		</p>
+		<div class="max-w-2xl pt-8 space-y-4 text-lg font-light leading-relaxed">
+			<p>
+				I have wanted a page like this for years. The trouble with gear posts is
+				that they go stale the moment you publish them, so this one is built
+				from a single list I can add a line to whenever something earns its
+				place on the desk — or gets retired from it.
+			</p>
+			<p>
+				Everything here is something I actually own and use. If a category looks
+				thin, it is because I have not gotten around to writing it up yet, not
+				because it is empty.
+			</p>
+		</div>
+
+		<nav aria-label="Gear categories" class="flex flex-wrap gap-x-5 gap-y-2 pt-10">
+			{
+				categories.map((category) => (
+					<a
+						class="text-lg text-primary dark:text-primary-dark underline underline-offset-4 decoration-2"
+						href={`#${category.slug}`}
+					>
+						{category.name}
+					</a>
+				))
+			}
+		</nav>
+		<p class="pt-4 text-sm font-mono opacity-50">
+			{itemCount} items across {categories.length} categories
+		</p>
+	</main>
+
+	{
+		categories.map((category) => (
+			<section id={category.slug} class="app-container pt-16">
+				<div class="flex items-baseline gap-3">
+					<h2 class="text-3xl font-semibold">{category.name}</h2>
+					<span class="text-sm font-mono opacity-40">
+						{category.items.length}
+					</span>
+				</div>
+				{category.blurb && (
+					<p class="max-w-2xl pt-3 text-lg font-light leading-relaxed opacity-70">
+						{category.blurb}
+					</p>
+				)}
+				<div class="gear-row">
+					{category.items.map((item) => (
+						<GearCard item={item} category={category.name} />
+					))}
+				</div>
+			</section>
+		))
+	}
+
+	<section class="app-container pt-16 pb-24">
+		<p class="max-w-2xl text-lg font-light leading-relaxed opacity-70">
+			Curious about the telescope side of things? The <a
+				class="text-primary dark:text-primary-dark underline underline-offset-4 decoration-2"
+				href="/astro">astrophotography page</a
+			> goes into how the imaging setup came together, and what it can see.
+		</p>
+	</section>
+</BaseLayout>
