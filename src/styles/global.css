@@ -50,6 +50,19 @@ html {
 	@apply grid my-6 md:grid-cols-2 lg:grid-cols-3 gap-6;
 }
 
+/* Horizontally scrolling row of gear cards. The negative margins cancel out
+   .app-container's padding so cards scroll off the edge of the screen, while
+   the matching padding keeps the first card aligned with the text above it. */
+.gear-row {
+	@apply flex gap-5 pt-8 pb-4 overflow-x-auto snap-x;
+	@apply -mx-6 px-6 sm:-mx-12 sm:px-12 2xl:-mx-16 2xl:px-16;
+	/* Snap points are measured from the padding box, so without a matching
+	   scroll-padding the row would snap the first card past its own padding. */
+	@apply scroll-px-6 sm:scroll-px-12 2xl:scroll-px-16;
+	scrollbar-width: thin;
+	scrollbar-color: color-mix(in srgb, currentColor 20%, transparent) transparent;
+}
+
 /* Post content */
 .prose iframe {
 	@apply my-16 mx-auto w-11/12 aspect-video rounded-xl;

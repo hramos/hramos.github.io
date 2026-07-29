@@ -40,6 +40,11 @@ export const WebsiteLinks = [
 		icon: 'mdi:telescope',
 	},
 	{
+		name: 'Gear',
+		url: 'gear',
+		icon: 'mdi:toolbox',
+	},
+	{
 		name: 'About',
 		url: 'about',
 		icon: 'mdi:account',
