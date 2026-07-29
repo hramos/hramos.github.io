@@ -13,7 +13,7 @@ const posts = (await getCollection('blog')).sort(
 		<h1 class="text-6xl pb-8 font-bold">Writing</h1>
 	</main>
 	<section class="app-container py-12">
-		<ul class="posts-grid-container">
+		<ul class="posts-archive-grid">
 			{
 				posts.map((post) => (
 					<li>

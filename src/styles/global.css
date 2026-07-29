@@ -44,6 +44,12 @@ html {
 	@apply grid my-6 md:grid-cols-2 xl:grid-cols-4 gap-6;
 }
 
+/* Archive listing: fewer, wider columns than the four recent posts on the
+   homepage, so the full post list fills its rows instead of trailing off. */
+.posts-archive-grid {
+	@apply grid my-6 md:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
 /* Horizontally scrolling row of gear cards. The negative margins cancel out
    .app-container's padding so cards scroll off the edge of the screen, while
    the matching padding keeps the first card aligned with the text above it. */

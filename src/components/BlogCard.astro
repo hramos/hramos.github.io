@@ -11,6 +11,14 @@ const blogImages = import.meta.glob<{ default: ImageMetadata }>(
 )
 
 const coverImagePath = `/src/assets/blogimages/${post.slug}/cover.jpg`
+const coverImage = blogImages[coverImagePath]
+
+// Posts without a cover image fall back to a generated gradient, so every card
+// starts with the same aspect-video block and cards stay aligned within a row.
+// The hue comes from the slug, so a post always gets the same colour.
+const fallbackHue =
+	[...post.slug].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 360
+const fallbackGradient = `linear-gradient(135deg, hsl(${fallbackHue} 45% 42%), hsl(${(fallbackHue + 45) % 360} 50% 22%))`
 ---
 
 <a
@@ -18,12 +26,22 @@ const coverImagePath = `/src/assets/blogimages/${post.slug}/cover.jpg`
 	class="flex flex-col gap-4 pb-8 h-full group transition-colors"
 >
 	{
-		blogImages[coverImagePath] && (
+		coverImage ? (
 			<Image
-				src={blogImages[coverImagePath]()}
+				src={coverImage()}
 				alt={post.data.title}
-				class="object-cover rounded-xl aspect-video"
+				class="w-full object-cover rounded-xl aspect-video"
 			/>
+		) : (
+			<div
+				class="flex items-center justify-center rounded-xl aspect-video"
+				style={`background-image: ${fallbackGradient}`}
+				aria-hidden="true"
+			>
+				<span class="font-mono text-5xl font-bold text-white/40">
+					{post.data.title.charAt(0)}
+				</span>
+			</div>
 		)
 	}
 	<h4
