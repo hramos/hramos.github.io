@@ -1,0 +1,22 @@
+---
+// Applies the stored theme to <html> before the browser paints, so a dark-mode
+// visitor never sees a flash of the light background on navigation. This has to
+// stay in <head> and stay inline: a deferred or bundled script runs after the
+// first paint, which is exactly the flash we're avoiding.
+---
+
+<script is:inline>
+	window.__applyTheme = function () {
+		const stored = localStorage.theme
+		const dark =
+			stored === 'dark' ||
+			(!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)
+
+		document.documentElement.classList.toggle('dark', dark)
+		// Tells the browser which colors to paint the canvas, scrollbars, and
+		// form controls with — including the moment before our CSS applies.
+		document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+	}
+
+	window.__applyTheme()
+</script>
