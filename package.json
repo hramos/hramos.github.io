@@ -28,7 +28,7 @@
 		"@tailwindcss/vite": "^4.1.12",
 		"astro": "^6.3.5",
 		"astro-icon": "^1.1.0",
-		"dayjs": "^1.11.13",
+		"dayjs": "^1.11.23",
 		"mdast-util-to-string": "^4.0.0",
 		"reading-time": "^1.5.0",
 		"rehype-figure-title": "^1.0.0",
