@@ -1,0 +1,49 @@
+---
+import type { ImageMetadata } from 'astro'
+import { Image } from 'astro:assets'
+import { ASTRO_GALLERY } from '../data/astro-images'
+
+const files = import.meta.glob<{ default: ImageMetadata }>(
+	'/src/assets/astro/*.{jpeg,jpg,png,webp,avif}'
+)
+
+// Skip entries whose file has not been added yet, so a half-filled data file
+// still renders cleanly.
+const captures = ASTRO_GALLERY.map((capture) => ({
+	capture,
+	image: files[`/src/assets/astro/${capture.file}`],
+})).filter((entry) => entry.image)
+
+const meta = (capture: (typeof ASTRO_GALLERY)[number]) =>
+	[capture.captured, capture.integration, capture.filters]
+		.filter(Boolean)
+		.join(' · ')
+---
+
+{
+	captures.length > 0 && (
+		<ul class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+			{captures.map(({ capture, image }) => (
+				<li class="card-surface overflow-hidden">
+					<figure>
+						<Image
+							src={image()}
+							alt={`Astrophotograph of ${capture.target}`}
+							widths={[480, 800, 1200]}
+							sizes="(min-width: 1280px) 30vw, (min-width: 640px) 45vw, 90vw"
+							class="w-full object-cover aspect-[3/2]"
+						/>
+						<figcaption class="p-4">
+							<span class="block text-xl font-semibold">{capture.target}</span>
+							{meta(capture) && (
+								<span class="block pt-1 text-sm font-mono opacity-60">
+									{meta(capture)}
+								</span>
+							)}
+						</figcaption>
+					</figure>
+				</li>
+			))}
+		</ul>
+	)
+}

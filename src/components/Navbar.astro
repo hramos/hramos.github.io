@@ -11,17 +11,21 @@ import LogoSVG from '../assets/logo.svg'
 		<div class="app-container flex justify-between items-center py-5">
 			<strong><a href=`${SITE_BASE}/` aria-label="Home">Héctor Ramos</a></strong
 			>
-			<div class="gap-8 hidden md:flex items-center">
+			<div class="gap-6 lg:gap-8 hidden md:flex items-center">
 				{
 					WebsiteLinks.map((link) => (
 						<NavbarLink
-							class="text-lg"
+							class="text-lg flex items-center gap-2"
 							href={`${SITE_BASE}/${link.url}`}
 							target={link.url.charAt(0) === 'h' ? '_blank' : '_self'}
 							aria-label={link.name}
 							title={link.name}
 						>
 							<Icon name={link.icon} class="text-2xl" aria-hidden />
+							{/* Icons alone are ambiguous, so the destination is spelled out
+							    wherever there is room for it. Between md and lg the row is
+							    too tight for four labels, and the title/aria-label carry it. */}
+							<span class="hidden lg:inline">{link.name}</span>
 						</NavbarLink>
 					))
 				}
@@ -53,12 +57,13 @@ import LogoSVG from '../assets/logo.svg'
 					{
 						WebsiteLinks.map((link) => (
 							<NavbarLink
-								class="text-4xl font-light"
-								href={link.url}
+								class="text-3xl font-light flex items-center gap-4"
+								href={`${SITE_BASE}/${link.url}`}
 								aria-label={link.name}
 								title={link.name}
 							>
-								<Icon name={link.icon} class="text-4xl" aria-hidden />
+								<Icon name={link.icon} class="text-3xl" aria-hidden />
+								<span>{link.name}</span>
 							</NavbarLink>
 						))
 					}

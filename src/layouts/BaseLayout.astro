@@ -12,13 +12,7 @@ interface Props {
 	hideFooter?: boolean
 }
 
-const {
-	title,
-	description,
-	image,
-	ogTitle,
-	hideFooter = false,
-} = Astro.props
+const { title, description, image, ogTitle, hideFooter = false } = Astro.props
 
 import '@fontsource-variable/inter'
 import '@fontsource-variable/jetbrains-mono'
@@ -35,10 +29,14 @@ import '@fontsource-variable/jetbrains-mono'
 		/>
 	</head>
 	<body
-		class="text-foreground bg-background font-light dark:text-foreground-dark dark:bg-background-dark transition-colors"
+		class="text-foreground bg-background font-light dark:text-foreground-dark dark:bg-background-dark transition-colors min-h-screen flex flex-col"
 	>
 		<Navbar title={SITE_TITLE} />
-		<slot />
+		<!-- Short pages (404, say) grow to fill the viewport so the footer sits at
+		     the bottom of the screen instead of halfway up it. -->
+		<div class="flex-1 flex flex-col">
+			<slot />
+		</div>
 		{!hideFooter && <Footer />}
 	</body>
 </html>

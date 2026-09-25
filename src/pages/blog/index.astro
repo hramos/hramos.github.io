@@ -6,21 +6,52 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
 const posts = (await getCollection('blog')).sort(
 	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
 )
+
+// Posts are grouped under the year they were published, newest year first, so
+// the archive reads as a dated record rather than one undifferentiated grid.
+const years = [
+	...new Set(posts.map((post) => post.data.pubDate.getFullYear())),
+].sort((a, b) => b - a)
+
+const postsByYear = years.map((year) => ({
+	year,
+	posts: posts.filter((post) => post.data.pubDate.getFullYear() === year),
+}))
 ---
 
-<BaseLayout>
+<BaseLayout
+	title="Writing | Héctor Ramos"
+	description="An archive of posts by Héctor Ramos, grouped by year."
+>
 	<main class="app-container pt-36">
-		<h1 class="text-6xl pb-8 font-bold">Writing</h1>
+		<h1 class="text-6xl pb-4 font-bold">Writing</h1>
+		<p class="text-2xl max-w-2xl font-light leading-normal">
+			An archive of {posts.length} posts written between {
+				years[years.length - 1]
+			} and {years[0]}, mostly about mobile development, developer tools, and
+			life in Puerto Rico.
+		</p>
 	</main>
-	<section class="app-container py-12">
-		<ul class="posts-archive-grid">
-			{
-				posts.map((post) => (
-					<li>
-						<BlogCard post={post} />
-					</li>
-				))
-			}
-		</ul>
-	</section>
+	{
+		postsByYear.map(({ year, posts: yearPosts }) => (
+			<section class="app-container pt-12" aria-labelledby={`year-${year}`}>
+				<div class="flex items-baseline gap-3 border-b border-foreground/15 dark:border-foreground-dark/15 pb-2">
+					<h2 id={`year-${year}`} class="text-3xl font-semibold">
+						{year}
+					</h2>
+					<span class="text-sm font-mono opacity-40">
+						{yearPosts.length} {yearPosts.length === 1 ? 'post' : 'posts'}
+					</span>
+				</div>
+				<ul class="posts-archive-grid">
+					{yearPosts.map((post) => (
+						<li>
+							<BlogCard post={post} />
+						</li>
+					))}
+				</ul>
+			</section>
+		))
+	}
+	<div class="pb-16"></div>
 </BaseLayout>

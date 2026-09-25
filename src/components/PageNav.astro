@@ -1,0 +1,27 @@
+---
+interface Props {
+	sections: { id: string; label: string }[]
+	label?: string
+	class?: string
+}
+
+const { sections, label = 'On this page', class: className } = Astro.props
+---
+
+<nav aria-label={label} class:list={['text-page-nav', className]}>
+	<h2 class="text-sm font-mono uppercase tracking-wide opacity-50">{label}</h2>
+	<ul class="mt-4 flex flex-col gap-2">
+		{
+			sections.map((section) => (
+				<li>
+					<a
+						class="text-lg text-primary dark:text-primary-dark underline underline-offset-4 decoration-2"
+						href={`#${section.id}`}
+					>
+						{section.label}
+					</a>
+				</li>
+			))
+		}
+	</ul>
+</nav>
