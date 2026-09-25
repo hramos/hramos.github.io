@@ -55,8 +55,7 @@ export const PAST_ROLES: TimelineEntry[] = [
 			'Designed and maintained high-availability systems in a regulated environment for the financial services provider behind the largest bank in Puerto Rico. A strong foundation in reliability and scale.',
 	},
 	{
-		// The prose this replaced never named the school; left generic on purpose.
-		company: 'University in Puerto Rico',
+		company: 'University of Puerto Rico',
 		role: 'BS, Computer Engineering',
 		detail:
 			"Also managed the physics department's high-performance computing lab, which grounded my love for Unix systems and infrastructure.",
