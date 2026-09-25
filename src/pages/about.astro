@@ -1,74 +1,120 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
+import PageNav from '../components/PageNav.astro'
+import { CURRENT_ROLE, PAST_ROLES } from '../data/timeline'
+import type { TimelineEntry } from '../data/timeline'
+
+const sections = [
+	{ id: 'currently', label: 'Currently' },
+	{ id: 'in-the-past', label: 'In the past' },
+	{ id: 'elsewhere', label: 'Elsewhere' },
+]
+
+// Absolute dates win when they are known; otherwise show the duration the
+// previous prose stated, so every entry carries some chronology.
+const chronology = (entry: TimelineEntry) => entry.dates ?? entry.duration
 ---
 
-<BaseLayout>
+<BaseLayout
+	title="About | Héctor Ramos"
+	description="Héctor Ramos: founder of Wallfacer, previously React Native at Meta and a founding engineer at Parse."
+>
 	<main class="app-container pt-36">
-		<h1 class="text-6xl pb-2 font-bold">About Me</h1>
+		<h1 class="text-6xl pb-4 font-bold">About Me</h1>
+		<p class="text-2xl max-w-2xl font-light leading-normal">
+			Twenty years of building software, most of it developer tools. Here is the
+			arc, newest first.
+		</p>
 	</main>
 	<section class="app-container py-12 mb-8">
-		<div
-			class="prose prose-neutral prose-lg md:prose-xl dark:prose-invert prose-img:rounded-xl prose-figure:text-center prose-img:mx-auto"
-		>
-			<h2>Currently</h2>
-			<p>
-				Building <a href="https://wallfacer.ai/">Wallfacer Technologies</a>.
-			</p>
+		<div class="text-page-grid">
+			<div class="flex flex-col gap-16">
+				<section id="currently" class="scroll-mt-28">
+					<h2 class="text-3xl font-semibold pb-6">Currently</h2>
+					<article class="card-surface p-6">
+						<div class="flex flex-wrap items-baseline gap-x-3">
+							<h3 class="text-2xl font-semibold">
+								{
+									CURRENT_ROLE.href ? (
+										<a
+											class="text-primary dark:text-primary-dark underline underline-offset-4 decoration-2"
+											href={CURRENT_ROLE.href}
+										>
+											{CURRENT_ROLE.company}
+										</a>
+									) : (
+										CURRENT_ROLE.company
+									)
+								}
+							</h3>
+							<p class="text-lg opacity-70">{CURRENT_ROLE.role}</p>
+						</div>
+						<p class="pt-3 text-lg leading-relaxed">{CURRENT_ROLE.detail}</p>
+					</article>
+				</section>
 
-			<h2>In the past</h2>
-			<p>
-				Most recently a <strong
-					>founding engineer at <a href="https://groupthink.com">Groupthink</a
-					></strong
-				>, where I built real-time AI collaboration tools in React and React
-				Native and shaped our mobile and client architecture.
-			</p>
-			<p>
-				<strong>Worked on the React Native team at Meta</strong>, leading
-				strategy for the New Architecture open source rollout. I helped shape
-				the public roadmap, maintained the CI/CD pipeline, built core
-				integrations, and ensured alignment between internal systems and open
-				source releases. I also authored much of the documentation and worked
-				closely with the community to drive adoption and developer success.
-			</p>
-			<p>
-				<strong>Founding engineer at Parse</strong> (acquired by Meta), where I led
-				community engagement, shaped the developer advocacy roadmap, and contributed
-				to both frontend and platform tooling. I also managed the Developer Advocacy
-				team, gave talks worldwide, and helped guide the product through shutdown
-				and open-sourcing.
-			</p>
-			<p>
-				I have made a small amount of <a href="/angel"
-					><strong>angel investments</strong></a
-				> in the past.
-			</p>
-			<p>
-				Before that, I spent two years at Polsense <strong
-					>building iOS apps in Objective-C for Puerto Rico's largest bank</strong
-				>, starting just after the launch of the App Store. It was the early
-				days of mobile, and I dove deep into iOS before most companies took it
-				seriously, shaping internal banking tools for one of the island's
-				largest institutions.
-			</p>
-			<p>
-				Earlier still, I spent four years as a <strong
-					>systems architect at Evertec</strong
-				>, the financial services provider behind the largest bank in Puerto
-				Rico. I designed and maintained high-availability systems in a regulated
-				environment, giving me a strong foundation in reliability and scale.
-			</p>
-			<p>
-				<strong>I studied Computer Engineering in Puerto Rico</strong>, where I
-				also managed the physics department's high-performance computing lab —
-				an experience that grounded my love for Unix systems and infrastructure.
-			</p>
-			<p>
-				<strong>I was born and raised in Puerto Rico</strong>, a territory of
-				the United States (yes, I am a citizen!). A few years after graduating
-				from college, I moved to the Bay Area to build software with great
-				teams.
-			</p>
+				<section id="in-the-past" class="scroll-mt-28">
+					<h2 class="text-3xl font-semibold pb-6">In the past</h2>
+					<ol
+						class="flex flex-col gap-8 border-l-2 border-foreground/15 dark:border-foreground-dark/15 pl-6"
+					>
+						{
+							PAST_ROLES.map((entry) => (
+								<li class="relative">
+									<span
+										class="absolute -left-[1.9rem] top-2.5 h-3 w-3 rounded-full bg-foreground/30 dark:bg-foreground-dark/30"
+										aria-hidden="true"
+									/>
+									<div class="flex flex-wrap items-baseline gap-x-3">
+										<h3 class="text-2xl font-semibold">
+											{entry.href ? (
+												<a
+													class="text-primary dark:text-primary-dark underline underline-offset-4 decoration-2"
+													href={entry.href}
+												>
+													{entry.company}
+												</a>
+											) : (
+												entry.company
+											)}
+										</h3>
+										<p class="text-lg opacity-70">{entry.role}</p>
+										{chronology(entry) && (
+											<p class="text-sm font-mono opacity-50">
+												{chronology(entry)}
+											</p>
+										)}
+									</div>
+									<p class="pt-2 text-lg leading-relaxed max-w-2xl">
+										{entry.detail}
+									</p>
+								</li>
+							))
+						}
+					</ol>
+				</section>
+
+				<section id="elsewhere" class="scroll-mt-28">
+					<h2 class="text-3xl font-semibold pb-6">Elsewhere</h2>
+					<div class="flex flex-col gap-4 text-lg leading-relaxed max-w-2xl">
+						<p>
+							I was born and raised in Puerto Rico, a territory of the United
+							States (yes, I am a citizen). A few years after graduating I moved
+							to the Bay Area to build software with great teams.
+						</p>
+						<p>
+							I have made a small number of <a
+								class="text-primary dark:text-primary-dark underline underline-offset-4 decoration-2"
+								href="/angel">angel investments</a
+							>, and I keep notes on the <a
+								class="text-primary dark:text-primary-dark underline underline-offset-4 decoration-2"
+								href="/gear">gear I use</a
+							>.
+						</p>
+					</div>
+				</section>
+			</div>
+			<PageNav sections={sections} />
 		</div>
 	</section>
 </BaseLayout>

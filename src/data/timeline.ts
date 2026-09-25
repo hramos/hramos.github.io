@@ -1,0 +1,64 @@
+// Roles behind the /about timeline. `dates` is the absolute range shown next to
+// a role; it is left empty where the range has not been confirmed, and the
+// timeline falls back to `duration` (taken from the prose this list replaced)
+// so an entry is never left with no chronology at all.
+export interface TimelineEntry {
+	company: string
+	href?: string
+	role: string
+	dates?: string
+	duration?: string
+	detail: string
+}
+
+export const CURRENT_ROLE: TimelineEntry = {
+	company: 'Wallfacer Technologies',
+	href: 'https://wallfacer.ai/',
+	role: 'Founder and CEO',
+	detail:
+		'A cloud dev environment where coding agents go from idea to pull request while you watch, from a phone, a tablet, or any browser. Real Linux and macOS VMs with your repo, services, Docker, Xcode, and the iOS Simulator behind a chat, diff, and live-preview UI.',
+}
+
+export const PAST_ROLES: TimelineEntry[] = [
+	{
+		company: 'Groupthink',
+		href: 'https://groupthink.com',
+		role: 'Founding engineer',
+		detail:
+			'Built real-time AI collaboration tools in React and React Native, and shaped the mobile and client architecture.',
+	},
+	{
+		company: 'Meta',
+		role: 'Senior Software Engineer, React Native',
+		duration: 'about a decade',
+		detail:
+			'Led strategy for the New Architecture open source rollout: shaped the public roadmap, maintained the CI/CD pipeline, built core integrations, and kept internal systems aligned with open source releases. Authored much of the documentation and worked with the community to drive adoption.',
+	},
+	{
+		company: 'Parse',
+		role: 'Founding engineer (acquired by Meta)',
+		detail:
+			'Led community engagement, shaped the developer advocacy roadmap, and contributed to both frontend and platform tooling. Managed the Developer Advocacy team, gave talks worldwide, and helped guide the product through shutdown and open-sourcing.',
+	},
+	{
+		company: 'Polsense',
+		role: 'iOS engineer',
+		duration: '2 years',
+		detail:
+			"Built iOS apps in Objective-C for Puerto Rico's largest bank, starting just after the App Store launched. It was the early days of mobile, and I went deep on iOS before most companies took it seriously.",
+	},
+	{
+		company: 'Evertec',
+		role: 'Systems architect',
+		duration: '4 years',
+		detail:
+			'Designed and maintained high-availability systems in a regulated environment for the financial services provider behind the largest bank in Puerto Rico. A strong foundation in reliability and scale.',
+	},
+	{
+		// The prose this replaced never named the school; left generic on purpose.
+		company: 'University in Puerto Rico',
+		role: 'BS, Computer Engineering',
+		detail:
+			"Also managed the physics department's high-performance computing lab, which grounded my love for Unix systems and infrastructure.",
+	},
+]

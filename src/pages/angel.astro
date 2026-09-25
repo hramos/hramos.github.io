@@ -1,43 +1,80 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
+import PageNav from '../components/PageNav.astro'
+import { ANGEL_INVESTMENTS, PRIVATE_INVESTMENTS } from '../data/investments'
+
+const sections = [
+	{ id: 'angel', label: 'Angel investments' },
+	{ id: 'private', label: 'Private investments' },
+]
+
+const groups = [
+	{
+		id: 'angel',
+		title: 'Angel investments',
+		blurb: 'A handful of checks written in 2021 and 2022.',
+		items: ANGEL_INVESTMENTS,
+	},
+	{
+		id: 'private',
+		title: 'Private investments',
+		blurb: 'Positions taken through SPVs rather than directly.',
+		items: PRIVATE_INVESTMENTS,
+	},
+]
 ---
 
-<BaseLayout>
+<BaseLayout
+	title="Investments | Héctor Ramos"
+	description="Angel and private investments made by Héctor Ramos."
+>
 	<main class="app-container pt-36">
-		<h1 class="text-6xl pb-2 font-bold">Investments</h1>
+		<h1 class="text-6xl pb-4 font-bold">Investments</h1>
+		<p class="text-2xl max-w-2xl font-light leading-normal">
+			A small portfolio, mostly developer and marketplace companies, mostly
+			written in 2021 and 2022.
+		</p>
 	</main>
 	<section class="app-container py-12 mb-8">
-		<div
-			class="prose prose-neutral prose-lg md:prose-xl dark:prose-invert prose-img:rounded-xl prose-figure:text-center prose-img:mx-auto"
-		>
-			<h2>Angel Investments</h2>
-			<p>I made a handful of angel investments in 2021-2022.</p>
-			<ul>
-				<li>
-					<a href="https://livehomeroom.com" target="_blank">Homeroom</a> (YC W22)
-					(Acquired by Bungalow)
-				</li>
-				<li>
-					<a href="https://nabis.com" target="_blank">Nabis</a>
-				</li>
-				<li>
-					<a href="https://obviously.ai" target="_blank">ObviouslyAI</a>
-				</li>
-				<li>
-					<a href="https://olaclick.com" target="_blank">OlaClick</a>
-				</li>
-				<li>
-					<a href="https://pipe.com" target="_blank">Pipe</a>
-				</li>
-			</ul>
-
-			<h2>Private Investments</h2>
-			<p>I have also made some investments through SPVs in the past.</p>
-			<ul>
-				<li>
-					<a href="https://spacex.com" target="_blank">SpaceX</a>
-				</li>
-			</ul>
+		<div class="text-page-grid">
+			<div class="flex flex-col gap-16">
+				{
+					groups.map((group) => (
+						<section id={group.id} class="scroll-mt-28">
+							<h2 class="text-3xl font-semibold">{group.title}</h2>
+							<p class="pt-2 text-lg opacity-70">{group.blurb}</p>
+							<ul class="mt-6 flex flex-col gap-4">
+								{group.items.map((item) => (
+									<li class="card-surface p-5">
+										<div class="flex flex-wrap items-baseline gap-x-3">
+											<h3 class="text-2xl font-semibold">
+												<a
+													class="text-primary dark:text-primary-dark underline underline-offset-4 decoration-2"
+													href={item.href}
+													target="_blank"
+													rel="noopener noreferrer"
+												>
+													{item.name}
+												</a>
+											</h3>
+											{item.year && (
+												<p class="text-sm font-mono opacity-50">{item.year}</p>
+											)}
+											{item.note && (
+												<p class="text-sm opacity-60">{item.note}</p>
+											)}
+										</div>
+										<p class="pt-2 text-lg leading-relaxed max-w-2xl">
+											{item.description}
+										</p>
+									</li>
+								))}
+							</ul>
+						</section>
+					))
+				}
+			</div>
+			<PageNav sections={sections} />
 		</div>
 	</section>
 </BaseLayout>

@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 import { SITE_BASE, SocialLinks } from '../consts'
 import { Icon } from 'astro-icon/components'
 import BlogCard from '../components/BlogCard.astro'
+import Portrait from '../components/Portrait.astro'
 import { getCollection } from 'astro:content'
 
 const posts = (await getCollection('blog'))
@@ -10,48 +11,49 @@ const posts = (await getCollection('blog'))
 	.slice(0, 4)
 ---
 
-<BaseLayout>
-	<main
-		class="app-container flex flex-col gap-12 justify-center py-36 md:py-48 pt-44 md:pt-56 relative"
-	>
-		<p class="text-2xl max-w-2xl font-light leading-normal">
-			Héctor has spent his career building developer tools that change how
-			entire ecosystems ship software. A computer engineer with 20 years of
-			experience across infrastructure, mobile, and AI, he spent a decade at
-			Meta working on open source development for React Native. Before that, he
-			was one of the earliest team members at Parse (acquired by Meta/Facebook),
-			where he shaped developer advocacy and built brand awareness for one of
-			the fastest-growing developer tools of all time.
-		</p>
-
-		<p class="text-2xl max-w-2xl font-light leading-normal">
-			Today, he’s founder and CEO of Wallfacer, a cloud dev environment where
-			Claude and Codex go from idea to PR while you watch — from a phone, a
-			tablet, or any browser. Wallfacer pairs real Linux and macOS VMs —
-			with your repo, services, Docker, Xcode, and the iOS Simulator — and
-			a chat, diff, and live-preview UI, so engineers can plan, steer, and
-			ship without ever opening a local IDE.
-		</p>
-		<p class="text-2xl max-w-2xl font-light leading-normal">
-			Before Wallfacer, Héctor was a Senior Software Engineer at Meta, where
-			he spent a decade building developer tools and cross-platform
-			frameworks like React Native and Parse. Originally
-			from Puerto Rico, he’s now based in Scottsdale, where he still tinkers
-			with systems for fun — from a backyard observatory for deep-sky
-			astrophotography to a rooftop plane tracker.
-		</p>
-		<div class="flex flex-wrap gap-8">
-			{
-				SocialLinks.map((link) => (
-					<a
-						class="text-xl text-primary dark:text-primary-dark underline hover:underline underline-offset-4"
-						href={link.url}
-						target="_blank"
-					>
-						{link.name}
-					</a>
-				))
-			}
+<BaseLayout
+	description="Héctor Ramos is a software engineer and the founder of Wallfacer. Previously React Native at Meta, and Parse."
+>
+	<main class="app-container pt-36 md:pt-44 pb-20 md:pb-28">
+		<div
+			class="grid lg:grid-cols-[minmax(0,1fr)_20rem] gap-12 lg:gap-16 items-start"
+		>
+			<div class="flex flex-col gap-6">
+				<h1 class="text-5xl md:text-7xl font-bold leading-none">
+					Héctor Ramos
+				</h1>
+				<p class="text-2xl md:text-3xl font-light leading-snug">
+					I build developer tools. Right now that means <a
+						class="text-primary dark:text-primary-dark underline underline-offset-4 decoration-2"
+						href="https://wallfacer.ai/">Wallfacer</a
+					>, a cloud dev environment where coding agents go from idea to pull
+					request while you watch.
+				</p>
+				<p class="text-lg md:text-xl font-light leading-relaxed max-w-2xl">
+					Twenty years across infrastructure, mobile, and AI. I spent a decade
+					at Meta on React Native, and before that I was a founding engineer at
+					Parse. I grew up in Puerto Rico and now live outside Scottsdale, where
+					I point a telescope at the sky most clear nights.
+				</p>
+				<div class="flex flex-wrap gap-x-8 gap-y-3 pt-2">
+					{
+						SocialLinks.map((link) => (
+							<a
+								class="text-xl text-primary dark:text-primary-dark underline underline-offset-4"
+								href={link.url}
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								{link.name}
+							</a>
+						))
+					}
+				</div>
+			</div>
+			<Portrait
+				alt="Héctor Ramos"
+				class="max-w-xs lg:max-w-none justify-self-start lg:justify-self-end"
+			/>
 		</div>
 	</main>
 
@@ -61,22 +63,22 @@ const posts = (await getCollection('blog'))
 		<div class="posts-grid-container">
 			{posts.map((post) => <BlogCard post={post} />)}
 		</div>
-		<a class="btn-secondary" href="/blog"
+		<a class="btn-secondary" href={`${SITE_BASE}/blog`}
 			>Read All
 			<Icon size={20} name="mdi:arrow-right" />
 		</a>
 	</section>
 
-	<!-- Recent Posts Section -->
-	<section class="app-container py-42 grid lg:grid-cols-2 gap-28 lg:gap-10">
+	<!-- About and contact -->
+	<section
+		class="app-container py-24 md:py-32 grid lg:grid-cols-2 gap-16 lg:gap-10"
+	>
 		<div class="space-y-6">
 			<h2 class="section-title">About Me</h2>
 			<p class="text-lg max-w-xl pb-4">
-				I'm a software engineer and entrepreneur originally from Puerto Rico,
-				now building Wallfacer Technologies. Previously, I was a founding
-				engineer at Groupthink working on AI collaboration tools, led React
-				Native open-source strategy at Meta, and was a founding engineer at
-				Parse before its acquisition by Meta.
+				The longer version: where I have worked, what I studied, and how I got
+				from a university computing lab in Puerto Rico to a backyard observatory
+				in Arizona.
 			</p>
 			<a class="btn-secondary" href={`${SITE_BASE}/about`}
 				>Go to About
@@ -86,13 +88,11 @@ const posts = (await getCollection('blog'))
 		<div class="space-y-6">
 			<h2 class="section-title">Get in touch</h2>
 			<p class="text-lg max-w-xl">
-				Feel free to reach out via email or connect with me on social media.
+				Email is best, and I read everything. I am also on the social networks
+				linked at the top of this page.
 			</p>
 			<div class="flex flex-wrap mt-auto space-x-4">
-				<a
-					class="btn-primary"
-					href="mailto:hector@hectorramos.com"
-					target="_blank"
+				<a class="btn-primary" href="mailto:hector@hectorramos.com"
 					>Get in touch
 					<Icon height={20} name="mdi:email" />
 				</a>

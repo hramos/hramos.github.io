@@ -1,6 +1,5 @@
 ---
-import { SocialLinks, WebsiteLinks } from '../consts'
-import LogoSVG from '../assets/logo.svg'
+import { SocialLinks, WebsiteLinks, SITE_BASE } from '../consts'
 import { Icon } from 'astro-icon/components'
 
 const today = new Date()
@@ -12,26 +11,28 @@ const today = new Date()
 	>
 		<div>
 			<h3 class="font-semibold text-2xl">
-				<a href="/" class="block w-fit" aria-label="Home">Home</a>
+				<a href={`${SITE_BASE}/`} class="block w-fit" aria-label="Home"
+					>Héctor Ramos</a
+				>
 			</h3>
+			<p class="mt-4 text-lg max-w-xs opacity-80">
+				Software engineer and founder in Scottsdale, Arizona. Writing, gear
+				notes, and pictures of the night sky.
+			</p>
 		</div>
 		<div>
 			<h3 class="font-semibold text-2xl">Links</h3>
 			<div class="flex flex-wrap gap-4 mt-4">
+				<a class="text-lg" href={`${SITE_BASE}/`}>Home</a>
 				{
-					WebsiteLinks.filter((link) => link.name !== 'Home').map((link) => (
-						<a
-							class="text-lg"
-							href={`/${link.url}`}
-							target="_blank"
-							rel="noopener noreferrer"
-						>
+					WebsiteLinks.map((link) => (
+						<a class="text-lg" href={`${SITE_BASE}/${link.url}`}>
 							{link.name}
 						</a>
 					))
 				}
 				<a
-					href="rss.xml"
+					href={`${SITE_BASE}/rss.xml`}
 					target="_blank"
 					rel="noopener noreferrer"
 					class="text-lg"
@@ -59,6 +60,7 @@ const today = new Date()
 			</div>
 		</div>
 	</div>
-	<div class="app-container flex justify-between items-center pb-6 text-center">
+	<div class="app-container flex justify-between items-center pb-6 text-sm">
+		<p class="opacity-60">&copy; {today.getFullYear()} Héctor Ramos</p>
 	</div>
 </footer>

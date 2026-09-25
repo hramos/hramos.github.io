@@ -26,6 +26,7 @@ const {
 } = Astro.props
 
 import BaseLayout from './BaseLayout.astro'
+import { SITE_TITLE } from '../consts'
 import { Image } from 'astro:assets'
 import { Icon } from 'astro-icon/components'
 
@@ -40,7 +41,11 @@ const lastModified = dayjs(remarkPluginFrontmatter.lastModified)
 	.format('D MMM YYYY')
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout
+	title={`${title} | ${SITE_TITLE}`}
+	ogTitle={title}
+	description={description}
+>
 	<main>
 		<article>
 			<div

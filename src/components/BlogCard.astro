@@ -23,18 +23,18 @@ const fallbackGradient = `linear-gradient(135deg, hsl(${fallbackHue} 45% 42%), h
 
 <a
 	href={`${SITE_BASE}/blog/${post.id}/`}
-	class="flex flex-col gap-4 pb-8 h-full group transition-colors"
+	class="card-surface card-interactive flex flex-col h-full group overflow-hidden"
 >
 	{
 		coverImage ? (
 			<Image
 				src={coverImage()}
 				alt={post.data.title}
-				class="w-full object-cover rounded-xl aspect-video"
+				class="w-full object-cover aspect-video"
 			/>
 		) : (
 			<div
-				class="flex items-center justify-center rounded-xl aspect-video"
+				class="flex items-center justify-center aspect-video"
 				style={`background-image: ${fallbackGradient}`}
 				aria-hidden="true"
 			>
@@ -44,15 +44,17 @@ const fallbackGradient = `linear-gradient(135deg, hsl(${fallbackHue} 45% 42%), h
 			</div>
 		)
 	}
-	<h4
-		class="text-2xl font-semibold group-hover:text-primary dark:group-hover:text-primary-dark group-hover:underline transition-colors"
-	>
-		{post.data.title}
-	</h4>
-	<p class="line-clamp-3 opacity-80">
-		{post.data.description}
-	</p>
-	<p class="uppercase text-sm mt-auto tracking-tight">
-		<FormattedDate date={post.data.pubDate} />
-	</p>
+	<div class="flex flex-col gap-3 p-5 h-full">
+		<h4
+			class="text-2xl font-semibold group-hover:text-primary dark:group-hover:text-primary-dark group-hover:underline transition-colors"
+		>
+			{post.data.title}
+		</h4>
+		<p class="line-clamp-3 opacity-80">
+			{post.data.description}
+		</p>
+		<p class="uppercase text-sm mt-auto tracking-tight opacity-60">
+			<FormattedDate date={post.data.pubDate} />
+		</p>
+	</div>
 </a>
