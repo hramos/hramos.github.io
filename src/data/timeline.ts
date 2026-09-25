@@ -16,7 +16,7 @@ export const CURRENT_ROLE: TimelineEntry = {
 	href: 'https://wallfacer.ai/',
 	role: 'Founder and CEO',
 	detail:
-		'A cloud dev environment where coding agents go from idea to pull request while you watch, from a phone, a tablet, or any browser. Real Linux and macOS VMs with your repo, services, Docker, Xcode, and the iOS Simulator behind a chat, diff, and live-preview UI.',
+		"AI employees that follow your team's process. You assign recurring work and Wallfacer carries it through the steps, checks, and corrections your handbook spells out, whether that is engineering, support, finance ops, or cloud ops. Each AI employee gets a prepared computer with the repo, services, and tools its role needs, and acts as its own user in the systems it touches.",
 }
 
 export const PAST_ROLES: TimelineEntry[] = [
