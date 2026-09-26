@@ -2,19 +2,13 @@
 import BaseLayout from '../layouts/BaseLayout.astro'
 import { SITE_BASE, SocialLinks } from '../consts'
 import { Icon } from 'astro-icon/components'
-import BlogCard from '../components/BlogCard.astro'
 import Portrait from '../components/Portrait.astro'
-import { getCollection } from 'astro:content'
-
-const posts = (await getCollection('blog'))
-	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
-	.slice(0, 4)
 ---
 
 <BaseLayout
 	description="Héctor Ramos is a software engineer and the founder of Wallfacer. Previously React Native at Meta, and Parse."
 >
-	<main class="app-container pt-36 md:pt-44 pb-20 md:pb-28">
+	<main class="app-container pt-36 md:pt-44">
 		<div
 			class="grid lg:grid-cols-[minmax(0,1fr)_20rem] gap-12 lg:gap-16 items-start"
 		>
@@ -56,18 +50,6 @@ const posts = (await getCollection('blog'))
 			/>
 		</div>
 	</main>
-
-	<!-- Recent Posts Section -->
-	<section class="app-container">
-		<h2 class="section-title">Writing</h2>
-		<div class="posts-grid-container">
-			{posts.map((post) => <BlogCard post={post} />)}
-		</div>
-		<a class="btn-secondary" href={`${SITE_BASE}/blog`}
-			>Read All
-			<Icon size={20} name="mdi:arrow-right" />
-		</a>
-	</section>
 
 	<!-- About and contact -->
 	<section
