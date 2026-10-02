@@ -48,7 +48,7 @@ export const PRIVATE_INVESTMENTS: Investment[] = [
 		name: 'SpaceX',
 		href: 'https://spacex.com',
 		description:
-			'Launch vehicles, spacecraft, and the Starlink satellite internet constellation.',
-		note: 'via SPV',
+			'Launch vehicles, spacecraft, and the Starlink satellite internet constellation. Entered at a $125B valuation and exited pre-IPO at $800B.',
+		note: 'via SPV · exited',
 	},
 ]
